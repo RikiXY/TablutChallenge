@@ -1,4 +1,5 @@
 // === CONVENZIONI DA RISPETTARE ===
+// nomi cameCase, no snake_naming
 // 1. i casting possono essere eseguiti o tramite reinterpret_cast<TYPE>(OBJ) (o static_cast<TYPE>(OBJ) ) o tramite TYPE(OBJ), niente (TYPE)OBJ
 
 #include <iostream>
@@ -25,6 +26,7 @@ int connect_to_server(string& address, uint16_t& port){
                                            // Host TO Network Short: il network byte order è big-endian (più significativo prima)
                                            // Short perché i valori possibili sono sempre o 5800 o 5801 e bastano 2 byte
     serverAddress.sin_addr.s_addr = inet_addr(address.c_str());  // Assegna al campo s_addr della struttura in_addr (tipologia di sin_addr) l'IPv4 convertito in un intero a 32 bit (network byte order).
+                                                                 // l'address di default è 127.0.0.1
 
     int result = connect(clientSocket, reinterpret_cast<sockaddr*>(&serverAddress), sizeof(serverAddress));  // C-style cast: (struct sockaddr*)&serverAddress
                                                                                                              //C++-style cast: reinterpret_cast<sockaddr*>(&serverAddress)
@@ -38,8 +40,8 @@ int connect_to_server(string& address, uint16_t& port){
 void join_game(int& clientSocket, string& name){
 
     // invio prima la dimensione del nome
-    uint32_t name_size = htonl(uint32_t(name.size()));  // uint32_t perché il protocollo del server prevede che la lunghezza sia rappresentata con esattamente 4 byte e in Network byte order
-    send(clientSocket, &name_size, sizeof(name_size), 0);  // dichiaro il puntatore, la dimensione del puntatore, e che non ci siano altre flag
+    uint32_t nameSize = htonl(uint32_t(name.size()));  // uint32_t perché il protocollo del server prevede che la lunghezza sia rappresentata con esattamente 4 byte e in Network byte order
+    send(clientSocket, &nameSize, sizeof(nameSize), 0);  // dichiaro il puntatore, la dimensione del puntatore, e che non ci siano altre flag
     
     // ora invio il nome
     send(clientSocket, name.data(), name.size(), 0);  // mando attraverso il socker i byte del nome e la dimensione del nome completo. non ci sono altri flag
@@ -47,34 +49,44 @@ void join_game(int& clientSocket, string& name){
     cout<<"Name sent"<<endl;
 }
 
+string receive_json(int& clientSocket){
+
+    uint32_t jsonSize;
+    size_t recieved = recv(clientSocket, &jsonSize, sizeof(jsonSize), MSG_WAITALL);
+    if (recieved != sizeof(jsonSize))
+        throw runtime_error("Failed to recieve all JSON length bytes");
+    cout<<"The size of JSON is"<<jsonSize<<" bytes"<<endl;
+
+    jsonSize = ntohl(jsonSize);
+    string json(jsonSize, '\0');  // string <name>(<size>, <char>) → create a string filled with <char>
+    recieved = recv(clientSocket, &json[0], json.size(), MSG_WAITALL);
+    if (recieved != static_cast<size_t>(json.size()))
+        throw runtime_error("Failed to receive JSON");
+    return json;
+}
+
 int main(int argc, char *argv[]){
 
     // TODO: deve passare a 4 e bisogna rimuovere l'opzione di test e usare solo NAME
     if (argc < 6) throw invalid_argument("Missing arguments");
 
-    uint16_t port = argv[1] == "WHITE" ? 5800 : (string(argv[1]) == "BLACK" ? 5801 : throw invalid_argument("Not a valid role"));  // Ports defined in TablutCompetition/Tablut/src/.../util/Configuration.java
-    int timeout = int(argv[2]);
+    uint16_t port = string(argv[1]) == "WHITE" ? 5800 : (string(argv[1]) == "BLACK" ? 5801 : throw invalid_argument("Not a valid role"));  // Ports defined in TablutCompetition/Tablut/src/.../util/Configuration.java
+    int timeout = stoi(argv[2]);
     string serverIP = argv[3];
-    string name = (argv[4] == "-n" || argv[4] == "--name") ? argv[5] : "CustomFish";
+    string name = (string(argv[4]) == "-n" || string(argv[4]) == "--name") ? string(argv[5]) : "CustomFish";
 
 
     int clientSocket = connect_to_server(serverIP, port);  // returns file descriptor of socket()
  
     join_game(clientSocket, name);
-    cout << "Waiting for server response..." << endl;
+    cout<<"The server will respond once the other player has connected"<<endl;
+    cout<<"Waiting for server response..." << endl;
 
-    char buffer;
-    ssize_t received = recv(clientSocket, &buffer, 1, MSG_PEEK);
+    string json;
+    json = receive_json(clientSocket);
+    cout<<"JSON:"<<endl<<json<<endl;
 
-
-
-    if (received <= 0) {
-        cerr << "Connection closed or receive error" << endl;
-        close(clientSocket);
-        return 1; 
-    }
-
-    cout << "Server sent some data!" << endl;
+    //TODO: dato il json fare un parser che restituisca lo stato attuale della partita
 
     cin.get();  // Aspetta INVIO prima di terminare
 
