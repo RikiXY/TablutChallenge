@@ -3,7 +3,7 @@
 ServerConnection::ServerConnection(std::string address, uint16_t port)
     : address(address), port(port), clientSocket(-1) {}
 
-void ServerConnection::connect_to_server(){
+void ServerConnection::connectToServer(){
     // Establish the connection
     clientSocket = socket(AF_INET, SOCK_STREAM, 0);  // [__domain] AddressFamily_INET = IPv4
                                                         // [__type] SOCK_STREAM = connection-oriented
@@ -24,7 +24,7 @@ void ServerConnection::connect_to_server(){
         throw std::domain_error("Connection failed");
 }
 
-void ServerConnection::join_game(std::string name){
+void ServerConnection::joinGame(std::string name){
     // invio prima la dimensione del nome
     uint32_t nameSize = htonl(uint32_t(name.size()));  // uint32_t perché il protocollo del server prevede che la lunghezza sia rappresentata con esattamente 4 byte e in Network byte order
     send(clientSocket, &nameSize, sizeof(nameSize), 0);  // dichiaro il puntatore, la dimensione del puntatore, e che non ci siano altre flag
@@ -33,7 +33,7 @@ void ServerConnection::join_game(std::string name){
     send(clientSocket, name.data(), name.size(), 0);  // mando attraverso il socker i byte del nome e la dimensione del nome completo. non ci sono altri flag
 }
 
-std::string ServerConnection::receive_json(){
+std::string ServerConnection::receiveJson(){
     uint32_t jsonSize;
     size_t recieved = recv(clientSocket, &jsonSize, sizeof(jsonSize), MSG_WAITALL);
 

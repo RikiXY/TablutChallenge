@@ -14,7 +14,7 @@ class ServerConnection{
     
     public:
     ServerConnection(std::string address, uint16_t port);
-    void connect_to_server();
-    void join_game(std::string name);
-    std::string receive_json();
+    void connectToServer();
+    void joinGame(std::string name);
+    std::string receiveJson();
 };
