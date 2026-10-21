@@ -40,7 +40,6 @@ int main(int argc, char *argv[]){
     BoardMatrix currenetBoardState = board.getState();
     board.showState();
 
-
     
     //TODO: dato il json fare un parser che restituisca lo stato attuale della partita
     
