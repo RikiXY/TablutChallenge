@@ -41,7 +41,7 @@ void ServerConnector::joinGame(std::string name){  // Send <name> to server
     send(clientSocket, name.data(), name.size(), 0);  // mando attraverso il socker i byte del nome e la dimensione del nome completo. non ci sono altri flag
 }
  
-std::string ServerConnector::receiveJson(){  // Receive from server a raw string that must be interpreted as JSON file
+std::string ServerConnector::receiveJson(){  // Receive from server a raw string and returns it as string containing the JSON
     uint32_t jsonSize;
     size_t received = recv(clientSocket, &jsonSize, sizeof(jsonSize), MSG_WAITALL);  // chiamata bloccante
 

@@ -10,7 +10,7 @@ void Board::updateState(std::string rawJson) {
 void Board::showState(){
     for(int i = 0; i < 9; i++){
         for(int j = 0; j < 9; j++){
-            std::cout<<board[i][j];
+            std::cout<<static_cast<int>(board[i][j]);
         }
         std::cout<<std::endl;
     }

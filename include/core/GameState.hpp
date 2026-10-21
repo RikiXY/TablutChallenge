@@ -9,7 +9,7 @@ class GameState{
     Turn currentTurn;
 
     public:
-    GameState(std::string);
+    void update(std::string);
     Board getBoard();
     Turn getTurn();
 };

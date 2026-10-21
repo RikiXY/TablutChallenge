@@ -6,29 +6,42 @@ void Game::start(ServerConnector& gameConnection, std::string name, std::string 
     gameConnection.joinGame(name);
     std::cout<<"Name sent to server"<<std::endl;
     std::cout<<"The server will respond once the other player has connected"<<std::endl;
-    std::cout<<"Waiting for server response..."<<std::endl;
+
+    GameState currentGameState;
+    Board currentBoard;
+    Turn currentTurn;
+    do {
+        std::cout<<"Waiting for server response..."<<std::endl;
+        currentGameState.update(gameConnection.receiveJson());
+        std::cout<<"State received"<<std::endl;
+        
+        std::cout<<std::endl<<"=============================="<<std::endl<<std::endl;
+        
+        currentBoard = currentGameState.getBoard();
+        std::cout<<"Current board:"<<std::endl;
+        currentBoard.showState();
+
+        currentTurn = currentGameState.getTurn();
+        std::cout<<std::endl<<"Current turn: ";
+        currentTurn.showState();
+        
+        // * Gestione turni
+        if(currentTurn.getTurn() == role){
+            // ! selettore mossa
+            // ! invio mossa
+            std::cout<<"My turn"<<std::endl;
+            std::cin.get();
+            return;
+        }
+        else {
+            // * aspetto il mio turno
+            std::cout<<"Opponent's turn"<<std::endl;
+        }
+    } while(1);
     
-    GameState currentGameState(gameConnection.receiveJson());
-    std::cout<<"Initial state received"<<std::endl;
 
-    std::cout<<std::endl<<"=============================="<<std::endl<<std::endl;
     
-    std::cout<<"Current board:"<<std::endl;
-    Board currentBoard = currentGameState.getBoard();
-    currentBoard.showState();
+     
 
-    Turn currentTurn = currentGameState.getTurn();
-    std::cout<<std::endl<<"Current turn: ";
-    currentTurn.showState();
 
-    // Gestione turni
-    if(currentTurn.getTurn() == role){
-        // ! selettore mossa
-        // ! invio mossa
-        std::cout<<"My turn"<<std::endl;
-    }
-    else {
-        // * aspetto il mio turno
-        std::cout<<"Opponent's turn"<<std::endl;
-    }
 }

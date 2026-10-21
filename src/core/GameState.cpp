@@ -1,7 +1,6 @@
 #include "core/GameState.hpp"
 
-GameState::GameState(std::string rawJson){
-
+void GameState::update(std::string rawJson){
     // * Update Board
     currentBoard.updateState(rawJson);
 
