@@ -3,7 +3,7 @@
 // 1. i casting possono essere eseguiti o tramite reinterpret_cast<TYPE>(OBJ) (o static_cast<TYPE>(OBJ) ) o tramite TYPE(OBJ), niente (TYPE)OBJ
 
 #include <iostream>
-#include "ServerConnection.hpp"
+#include "connections/ServerConnection.hpp"
 
 using namespace std;
 
