@@ -3,9 +3,9 @@
 // 1. i casting possono essere eseguiti o tramite reinterpret_cast<TYPE>(OBJ) (o static_cast<TYPE>(OBJ) ) o tramite TYPE(OBJ), niente (TYPE)OBJ
 
 #include <iostream>
-#include "connections/ServerConnection.hpp"
-#include "core/Translator.hpp"
-#include "core/Board.hpp"
+#include "include/connections/ServerConnector.hpp"
+#include "include/core/Translator.hpp"
+#include "include/core/Board.hpp"
 
 using namespace std;
 
