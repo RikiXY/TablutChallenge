@@ -13,4 +13,4 @@ compile_commands.json
 *.swp
 
 # Compiled executable
-/main
+/player
