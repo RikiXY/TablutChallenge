@@ -2,9 +2,9 @@
 #include "core/Translator.hpp"
 #include <iostream>
 
-void Board::updateState(std::string json) {
+void Board::updateState(std::string rawJson) {
     Translator translator;
-    currentBoard = translator.translateFromJson(json);
+    currentBoard = translator.getBoard(rawJson);
 }
 
 void Board::showState(){
@@ -14,8 +14,4 @@ void Board::showState(){
         }
         std::cout<<std::endl;
     }
-}
-
-BoardMatrix Board::getState(){
-    return currentBoard;
 }

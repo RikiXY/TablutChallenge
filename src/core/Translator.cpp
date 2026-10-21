@@ -3,24 +3,24 @@
 #include <rapidjson/document.h>
 #include <string_view>
 
-std::array<std::array<int, 9>, 9> Translator::translateFromJson(std::string json){
-    // std::cout<<json<<std::endl;
-    /* Fixed JSON:
-    {
-        "board":[
-            ["EMPTY","EMPTY","EMPTY","BLACK","BLACK","BLACK","EMPTY","EMPTY","EMPTY"],
-            ["EMPTY","EMPTY","EMPTY","EMPTY","BLACK","EMPTY","EMPTY","EMPTY","EMPTY"],
-            ["EMPTY","EMPTY","EMPTY","EMPTY","WHITE","EMPTY","EMPTY","EMPTY","EMPTY"],
-            ["BLACK","EMPTY","EMPTY","EMPTY","WHITE","EMPTY","EMPTY","EMPTY","BLACK"],
-            ["BLACK","BLACK","WHITE","WHITE","KING" ,"WHITE","WHITE","BLACK","BLACK"],
-            ["BLACK","EMPTY","EMPTY","EMPTY","WHITE","EMPTY","EMPTY","EMPTY","BLACK"],
-            ["EMPTY","EMPTY","EMPTY","EMPTY","WHITE","EMPTY","EMPTY","EMPTY","EMPTY"],
-            ["EMPTY","EMPTY","EMPTY","EMPTY","BLACK","EMPTY","EMPTY","EMPTY","EMPTY"],
-            ["EMPTY","EMPTY","EMPTY","BLACK","BLACK","BLACK","EMPTY","EMPTY","EMPTY"]
-        ],
-        "turn":"WHITE"
-    }
-    */
+/* Fixed JSON:
+{
+    "board":[
+        ["EMPTY","EMPTY","EMPTY","BLACK","BLACK","BLACK","EMPTY","EMPTY","EMPTY"],
+        ["EMPTY","EMPTY","EMPTY","EMPTY","BLACK","EMPTY","EMPTY","EMPTY","EMPTY"],
+        ["EMPTY","EMPTY","EMPTY","EMPTY","WHITE","EMPTY","EMPTY","EMPTY","EMPTY"],
+        ["BLACK","EMPTY","EMPTY","EMPTY","WHITE","EMPTY","EMPTY","EMPTY","BLACK"],
+        ["BLACK","BLACK","WHITE","WHITE","KING" ,"WHITE","WHITE","BLACK","BLACK"],
+        ["BLACK","EMPTY","EMPTY","EMPTY","WHITE","EMPTY","EMPTY","EMPTY","BLACK"],
+        ["EMPTY","EMPTY","EMPTY","EMPTY","WHITE","EMPTY","EMPTY","EMPTY","EMPTY"],
+        ["EMPTY","EMPTY","EMPTY","EMPTY","BLACK","EMPTY","EMPTY","EMPTY","EMPTY"],
+        ["EMPTY","EMPTY","EMPTY","BLACK","BLACK","BLACK","EMPTY","EMPTY","EMPTY"]
+    ],
+    "turn":"WHITE"
+}
+*/
+
+std::array<std::array<int, 9>, 9> Translator::getBoard(std::string json){
 
     rapidjson::Document doc;
     doc.Parse(json.c_str());
@@ -28,7 +28,6 @@ std::array<std::array<int, 9>, 9> Translator::translateFromJson(std::string json
         throw std::runtime_error("Invalid JSON");
 
     auto& jsonBoard = doc["board"];
-    std::string turn = doc["turn"].GetString();
 
     // ? Dovrei ottimizzarlo confrontando stati precedenti e successivi
     std::array<std::array<int, 9>, 9> board;
@@ -43,4 +42,13 @@ std::array<std::array<int, 9>, 9> Translator::translateFromJson(std::string json
         }
     }
     return board;
+}
+
+std::string Translator::getTurn(std::string json){
+    rapidjson::Document doc;
+    doc.Parse(json.c_str());
+    if (doc.HasParseError())
+        throw std::runtime_error("Invalid JSON");
+    
+        return doc["turn"].GetString();
 }

@@ -10,7 +10,6 @@ class Board{
     BoardMatrix currentBoard {};  // con {} inizializzo tutto a 0
     
     public:
-    void updateState(std::string json);
-    BoardMatrix getState();
+    void updateState(std::string rawJson);
     void showState();
 };

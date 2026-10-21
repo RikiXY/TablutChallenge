@@ -4,8 +4,7 @@
 
 #include <iostream>
 #include "include/connections/ServerConnector.hpp"
-#include "include/core/Translator.hpp"
-#include "include/core/Board.hpp"
+#include "include/core/Game.hpp"
 
 using namespace std;
 
@@ -29,16 +28,14 @@ int main(int argc, char *argv[]){
     connection.connectToServer();
     cout<<"Connected"<<endl;
 
-    connection.joinGame(name);
-    cout<<"The server will respond once the other player has connected"<<endl;
-    cout<<"Waiting for server response..." << endl;
-
     //TODO: far partire il timer qui (?)
-    string rawJson = connection.receiveJson();
-    Board board;
-    board.updateState(rawJson);
-    BoardMatrix currenetBoardState = board.getState();
-    board.showState();
+    Game game;
+    cout<<"Joining game"<<endl;
+    game.start(connection, name);  // Join game on <connection> with <name> id
+    
+
+
+    
 
     
     //TODO: dato il json fare un parser che restituisca lo stato attuale della partita
