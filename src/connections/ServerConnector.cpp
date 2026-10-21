@@ -1,9 +1,13 @@
 #include "connections/ServerConnector.hpp"
 
-ServerConnection::ServerConnection(std::string address, uint16_t port)
+#include <sys/socket.h> // necessaria per definire il socket
+#include <arpa/inet.h>  // necessaria per instaurare la connessione (i.e. serveAddress , connect(), recv(), ...)
+#include <stdexcept>
+
+ServerConnector::ServerConnector(std::string address, uint16_t port)
     : address(address), port(port), clientSocket(-1) {}
 
-void ServerConnection::connectToServer(){
+void ServerConnector::connectToServer(){
     // Establish the connection
     clientSocket = socket(AF_INET, SOCK_STREAM, 0);  // [__domain] AddressFamily_INET = IPv4
                                                         // [__type] SOCK_STREAM = connection-oriented
@@ -24,27 +28,32 @@ void ServerConnection::connectToServer(){
         throw std::domain_error("Connection failed");
 }
 
-void ServerConnection::joinGame(std::string name){  // Send <name> to server
+// ! errore nell'invio del nome: andrebbe inviato in formato json, quindi con le virgolette "<nome>"
+void ServerConnector::joinGame(std::string name){  // Send <name> to server
     // invio prima la dimensione del nome
     uint32_t nameSize = htonl(uint32_t(name.size()));  // uint32_t perché il protocollo del server prevede che la lunghezza sia rappresentata con esattamente 4 byte e in Network byte order
+    
+    // ! Non garantisce l'invio completo 
     send(clientSocket, &nameSize, sizeof(nameSize), 0);  // dichiaro il puntatore, la dimensione del puntatore, e che non ci siano altre flag
     
     // ora invio il nome
+    // ! Non garantisce l'invio completo 
     send(clientSocket, name.data(), name.size(), 0);  // mando attraverso il socker i byte del nome e la dimensione del nome completo. non ci sono altri flag
 }
 
-std::string ServerConnection::receiveJson(){  // Receive from server a raw string that must be interpreted as JSON file
+// ! bisognerebbe controllare la dimensione del JSON e validarlo 
+std::string ServerConnector::receiveJson(){  // Receive from server a raw string that must be interpreted as JSON file
     uint32_t jsonSize;
-    size_t recieved = recv(clientSocket, &jsonSize, sizeof(jsonSize), MSG_WAITALL);  // chiamata bloccante
+    size_t received = recv(clientSocket, &jsonSize, sizeof(jsonSize), MSG_WAITALL);  // chiamata bloccante
 
-    if (recieved != sizeof(jsonSize))
+    if (received != sizeof(jsonSize))
         throw std::runtime_error("Failed to recieve all JSON length bytes");
 
     jsonSize = ntohl(jsonSize);
     std::string json(jsonSize, '\0');  // string <name>(<size>, <char>) → create a string filled with <char>
-    recieved = recv(clientSocket, &json[0], json.size(), MSG_WAITALL);
+    received = recv(clientSocket, &json[0], json.size(), MSG_WAITALL);
 
-    if (recieved != static_cast<size_t>(json.size()))
+    if (received != static_cast<size_t>(json.size()))
         throw std::runtime_error("Failed to receive JSON");
 
     return json;

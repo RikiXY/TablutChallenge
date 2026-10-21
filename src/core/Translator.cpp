@@ -20,7 +20,7 @@
 }
 */
 
-std::array<std::array<int, 9>, 9> Translator::getBoard(std::string json){
+Translator::Translator(std::string json){
 
     rapidjson::Document doc;
     doc.Parse(json.c_str());
@@ -30,7 +30,6 @@ std::array<std::array<int, 9>, 9> Translator::getBoard(std::string json){
     auto& jsonBoard = doc["board"];
 
     // ? Dovrei ottimizzarlo confrontando stati precedenti e successivi
-    std::array<std::array<int, 9>, 9> board;
     for(int i = 0; i < 9; i++){
         for(int j = 0; j < 9; j++){
             std::string_view role = jsonBoard[i][j].GetString();  // avrei potuto allocare anche una normale stringa ma dato che GetString() restituisce un puntatore usiamo quello e via
@@ -38,17 +37,17 @@ std::array<std::array<int, 9>, 9> Translator::getBoard(std::string json){
             else if (role == "WHITE") board[i][j] = 1;
             else if (role == "BLACK") board[i][j] = 2;
             else if (role == "KING") board[i][j] = 3;
+            else if (role == "THRONE") board[i][j] = 4;
             else throw std::invalid_argument("Anomaly in JSON board detected");
         }
     }
+    turn = doc["turn"].GetString();
+}
+
+std::array<std::array<uint8_t, 9>, 9> Translator::getBoard(){
     return board;
 }
 
-std::string Translator::getTurn(std::string json){
-    rapidjson::Document doc;
-    doc.Parse(json.c_str());
-    if (doc.HasParseError())
-        throw std::runtime_error("Invalid JSON");
-    
-        return doc["turn"].GetString();
+std::string Translator::getTurn(){
+    return turn;
 }

@@ -2,18 +2,15 @@
 
 #include <string>
 #include <unistd.h>
-#include <sys/socket.h> // necessaria per definire il socket
-#include <arpa/inet.h>  // necessaria per instaurare la connessione (i.e. serveAddress , connect(), recv(), ...)
-#include <stdexcept>
 
-class ServerConnection{
+class ServerConnector{
     private:
     std::string address;
     uint16_t port;
     int clientSocket;
     
     public:
-    ServerConnection(std::string address, uint16_t port);
+    ServerConnector(std::string address, uint16_t port);
     void connectToServer();
     void joinGame(std::string name);
     std::string receiveJson();

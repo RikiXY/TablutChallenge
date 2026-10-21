@@ -3,8 +3,8 @@
 // 1. i casting possono essere eseguiti o tramite reinterpret_cast<TYPE>(OBJ) (o static_cast<TYPE>(OBJ) ) o tramite TYPE(OBJ), niente (TYPE)OBJ
 
 #include <iostream>
-#include "include/connections/ServerConnector.hpp"
-#include "include/core/Game.hpp"
+#include "connections/ServerConnector.hpp"
+#include "core/Game.hpp"
 
 using namespace std;
 
@@ -20,12 +20,12 @@ int main(int argc, char *argv[]){
     if (argc < 6) 
         throw invalid_argument("Missing arguments");
 
-    string role = argv[1] == "WHITE" ? "WHITE" : (argv[1] == "BLACK" ? "BLACK" : throw invalid_argument("Not a valid role"));
+    string role = string_view(argv[1]) == "WHITE" ? "WHITE" : (string_view(argv[1]) == "BLACK" ? "BLACK" : throw invalid_argument("Not a valid role"));
     uint16_t port = role == "WHITE" ? 5800 : 5801; // Ports defined in TablutCompetition/Tablut/src/.../util/Configuration.java
     int timeout = stoi(argv[2]);
     string name = (string(argv[4]) == "-n" || string(argv[4]) == "--name") ? string(argv[5]) : "CustomFish";
 
-    ServerConnection connection(argv[3], port);
+    ServerConnector connection(argv[3], port);
     connection.connectToServer();
     cout<<"Connected"<<endl;
 

@@ -3,8 +3,8 @@
 #include <iostream>
 
 void Board::updateState(std::string rawJson) {
-    Translator translator;
-    board = translator.getBoard(rawJson);
+    Translator translator(rawJson);
+    board = translator.getBoard();
 }
 
 void Board::showState(){

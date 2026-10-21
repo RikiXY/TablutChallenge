@@ -1,7 +1,7 @@
 #include "core/Game.hpp"
 #include <iostream>
 
-void Game::start(ServerConnection& gameConnection, std::string name, std::string role){
+void Game::start(ServerConnector& gameConnection, std::string name, std::string role){
 
     gameConnection.joinGame(name);
     std::cout<<"Name sent to server"<<std::endl;
@@ -9,24 +9,26 @@ void Game::start(ServerConnection& gameConnection, std::string name, std::string
     std::cout<<"Waiting for server response..."<<std::endl;
     
     GameState currentGameState(gameConnection.receiveJson());
-    std::cout<<"Initial state recieved"<<std::endl;
+    std::cout<<"Initial state received"<<std::endl;
 
-    std::cout<<"=============================="<<std::endl;
+    std::cout<<std::endl<<"=============================="<<std::endl<<std::endl;
     
     std::cout<<"Current board:"<<std::endl;
     Board currentBoard = currentGameState.getBoard();
     currentBoard.showState();
 
     Turn currentTurn = currentGameState.getTurn();
-    std::cout<<std::endl<<"Current turn:";
+    std::cout<<std::endl<<"Current turn: ";
     currentTurn.showState();
 
     // Gestione turni
     if(currentTurn.getTurn() == role){
         // ! selettore mossa
         // ! invio mossa
+        std::cout<<"My turn"<<std::endl;
     }
     else {
         // * aspetto il mio turno
+        std::cout<<"Opponent's turn"<<std::endl;
     }
 }

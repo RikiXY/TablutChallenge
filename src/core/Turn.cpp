@@ -1,9 +1,10 @@
 #include "core/Turn.hpp"
+#include "core/Translator.hpp"
 #include <iostream>
 
 void Turn::updateState(std::string rawJson){
-    Translator translator;
-    turn = translator.getTurn(rawJson);
+    Translator translator(rawJson);
+    turn = translator.getTurn();
 }
 
 void Turn::showState(){
