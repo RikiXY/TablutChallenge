@@ -1,4 +1,4 @@
-#include "connections/ServerConnection.hpp"
+#include "connections/ServerConnector.hpp"
 
 ServerConnection::ServerConnection(std::string address, uint16_t port)
     : address(address), port(port), clientSocket(-1) {}

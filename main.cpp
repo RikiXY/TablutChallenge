@@ -11,7 +11,7 @@ using namespace std;
 
 // #define NAME "CustomFish"
 
-// g++ -std=c++20 -Iinclude *.cpp connections/*.cpp -o main
+// g++ -std=c++20 -Iinclude main.cpp $(find src -name "*.cpp") -o main
 // ./main WHITE 60 127.0.0.1 -n player1
 // ./main BLACK 60 127.0.0.1 -n player2
 
