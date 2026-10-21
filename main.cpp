@@ -4,10 +4,16 @@
 
 #include <iostream>
 #include "connections/ServerConnection.hpp"
+#include "core/Translator.hpp"
+#include "core/Board.hpp"
 
 using namespace std;
 
 // #define NAME "CustomFish"
+
+// g++ -std=c++20 -Iinclude *.cpp connections/*.cpp -o main
+// ./main WHITE 60 127.0.0.1 -n player1
+// ./main BLACK 60 127.0.0.1 -n player2
 
 int main(int argc, char *argv[]){
 
@@ -20,17 +26,20 @@ int main(int argc, char *argv[]){
     string name = (string(argv[4]) == "-n" || string(argv[4]) == "--name") ? string(argv[5]) : "CustomFish";
 
     ServerConnection connection(argv[3], port);
-    connection.connect_to_server();
+    connection.connectToServer();
     cout<<"Connected"<<endl;
 
-    connection.join_game(name);
+    connection.joinGame(name);
     cout<<"The server will respond once the other player has connected"<<endl;
     cout<<"Waiting for server response..." << endl;
 
     //TODO: far partire il timer qui (?)
-    string json = connection.receive_json();
-    cout<<"JSON:"<<endl<<json<<endl;
-    //TODO: far partire il timer qui (?)
+    string rawJson = connection.receiveJson();
+    Board board;
+    board.updateState(rawJson);
+    BoardMatrix currenetBoardState = board.getState();
+    board.showState();
+
 
     
     //TODO: dato il json fare un parser che restituisca lo stato attuale della partita
