@@ -20,7 +20,8 @@ int main(int argc, char *argv[]){
     if (argc < 6) 
         throw invalid_argument("Missing arguments");
 
-    uint16_t port = string(argv[1]) == "WHITE" ? 5800 : (string(argv[1]) == "BLACK" ? 5801 : throw invalid_argument("Not a valid role"));  // Ports defined in TablutCompetition/Tablut/src/.../util/Configuration.java
+    string role = argv[1] == "WHITE" ? "WHITE" : (argv[1] == "BLACK" ? "BLACK" : throw invalid_argument("Not a valid role"));
+    uint16_t port = role == "WHITE" ? 5800 : 5801; // Ports defined in TablutCompetition/Tablut/src/.../util/Configuration.java
     int timeout = stoi(argv[2]);
     string name = (string(argv[4]) == "-n" || string(argv[4]) == "--name") ? string(argv[5]) : "CustomFish";
 
@@ -31,14 +32,7 @@ int main(int argc, char *argv[]){
     //TODO: far partire il timer qui (?)
     Game game;
     cout<<"Joining game"<<endl;
-    game.start(connection, name);  // Join game on <connection> with <name> id
-    
-
-
-    
-
-    
-    //TODO: dato il json fare un parser che restituisca lo stato attuale della partita
+    game.start(connection, name, role);  // Join game on <connection> with <name> id
     
 
     return 0;

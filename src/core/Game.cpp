@@ -1,7 +1,7 @@
 #include "core/Game.hpp"
 #include <iostream>
 
-void Game::start(ServerConnection& gameConnection, std::string name){
+void Game::start(ServerConnection& gameConnection, std::string name, std::string role){
 
     gameConnection.joinGame(name);
     std::cout<<"Name sent to server"<<std::endl;
@@ -12,10 +12,21 @@ void Game::start(ServerConnection& gameConnection, std::string name){
     std::cout<<"Initial state recieved"<<std::endl;
 
     std::cout<<"=============================="<<std::endl;
+    
     std::cout<<"Current board:"<<std::endl;
-    currentGameState.getBoard().showState();
+    Board currentBoard = currentGameState.getBoard();
+    currentBoard.showState();
+
+    Turn currentTurn = currentGameState.getTurn();
     std::cout<<std::endl<<"Current turn:";
-    currentGameState.getTurn().showState();
+    currentTurn.showState();
 
     // Gestione turni
+    if(currentTurn.getTurn() == role){
+        // ! selettore mossa
+        // ! invio mossa
+    }
+    else {
+        // * aspetto il mio turno
+    }
 }

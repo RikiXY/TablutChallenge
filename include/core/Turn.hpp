@@ -4,9 +4,10 @@
 
 class Turn{
     private:
-    std::string currentTurn;
+    std::string turn;
     
     public:
     void updateState(std::string rawJson);
     void showState();
+    std::string getTurn();
 };

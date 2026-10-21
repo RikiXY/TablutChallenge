@@ -7,5 +7,5 @@
 
 class Game{
     public:
-    void start(ServerConnection& gameConnection, std::string name);
+    void start(ServerConnection& gameConnection, std::string name, std::string role);
 };

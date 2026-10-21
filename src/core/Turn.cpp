@@ -3,9 +3,13 @@
 
 void Turn::updateState(std::string rawJson){
     Translator translator;
-    currentTurn = translator.getTurn(rawJson);
+    turn = translator.getTurn(rawJson);
 }
 
 void Turn::showState(){
-    std::cout<<currentTurn<<std::endl;
+    std::cout<<turn<<std::endl;
+}
+
+std::string Turn::getTurn(){
+    return turn;
 }
