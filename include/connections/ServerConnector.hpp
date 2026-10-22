@@ -8,6 +8,8 @@ class ServerConnector{
     std::string address;
     uint16_t port;
     int clientSocket;
+    void sendAllBytes(void*, size_t, int);
+    void receiveAllBytes(void*, size_t, int);
     
     public:
     ServerConnector(std::string address, uint16_t port);

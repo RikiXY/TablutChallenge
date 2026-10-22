@@ -28,33 +28,56 @@ void ServerConnector::connectToServer(){
         throw std::domain_error("Connection failed");
 }
 
-// ! errore nell'invio del nome: andrebbe inviato in formato json, quindi con le virgolette "<nome>"
+void ServerConnector::sendAllBytes(void* buffer, size_t size, int flag){
+    ssize_t sent = 0;
+    size_t totalSent = 0;
+    while(totalSent < size){
+        sent = send(clientSocket, buffer + totalSent, size - totalSent, flag);  // the buffer pointer shifts and the size must be decreased
+        if (sent > 0)
+            totalSent += static_cast<size_t>(sent);
+        else if (sent == -1)
+            throw std::runtime_error("Failed to send data");
+    }
+}
+
 void ServerConnector::joinGame(std::string name){  // Send <name> to server
-    // invio prima la dimensione del nome
-    uint32_t nameSize = htonl(uint32_t(name.size()));  // uint32_t perché il protocollo del server prevede che la lunghezza sia rappresentata con esattamente 4 byte e in Network byte order
+    std::string fixedName = "\"" + name + "\"";
     
-    // ! Non garantisce l'invio completo 
-    send(clientSocket, &nameSize, sizeof(nameSize), 0);  // dichiaro il puntatore, la dimensione del puntatore, e che non ci siano altre flag
+    // invio prima la dimensione del nome
+    uint32_t nameSize = htonl(uint32_t(fixedName.size()));  // uint32_t perché il protocollo del server prevede che la lunghezza sia rappresentata con esattamente 4 byte e in Network byte order
+    
+    sendAllBytes(&nameSize, sizeof(nameSize), MSG_NOSIGNAL);  // dichiaro il puntatore, la dimensione del puntatore, e altre flag
+                                                              // MSG_NOSIGNAL flag blocks the exception in the case socket is closed, giving -1 as result
+                                                                
     
     // ora invio il nome
-    // ! Non garantisce l'invio completo 
-    send(clientSocket, name.data(), name.size(), 0);  // mando attraverso il socker i byte del nome e la dimensione del nome completo. non ci sono altri flag
+    sendAllBytes(fixedName.data(), fixedName.size(), MSG_NOSIGNAL);  // mando attraverso il socker i byte del nome e la dimensione del nome completo. non ci sono altri flag
 }
  
-std::string ServerConnector::receiveJson(){  // Receive from server a raw string and returns it as string containing the JSON
-    uint32_t jsonSize;
-    size_t received = recv(clientSocket, &jsonSize, sizeof(jsonSize), MSG_WAITALL);  // chiamata bloccante
+void ServerConnector::receiveAllBytes(void* buffer, size_t size, int flag){
+    ssize_t received = 0;
+    size_t totalReceived = 0;
+    while(totalReceived < size){
+        received = recv(clientSocket, buffer + totalReceived, size - totalReceived, flag); // chiamata bloccante
+        if (received > 0)
+            totalReceived += static_cast<size_t>(received);
+        else if (received == -1)
+            throw std::runtime_error("Failed to receive data");
+    } 
+}
 
-    if (received != sizeof(jsonSize))
-        throw std::runtime_error("Failed to recieve all JSON length bytes");
+std::string ServerConnector::receiveJson(){  // Receive from server a raw string and returns it as string containing the JSON
+    
+    // receive json dimension
+    uint32_t jsonSize;
+    receiveAllBytes(&jsonSize, sizeof(jsonSize), MSG_WAITALL);
+    // ! bisognerebbe verificare le dimensioni del JSON per evitare che mi esploda il programma
 
     jsonSize = ntohl(jsonSize);
     std::string json(jsonSize, '\0');  // string <name>(<size>, <char>) → create a string filled with <char>
-    received = recv(clientSocket, &json[0], json.size(), MSG_WAITALL);
+    receiveAllBytes(&json[0], json.size(), MSG_WAITALL);
 
-    // ! bisognerebbe controllare la dimensione del JSON e validarlo
-    if (received != static_cast<size_t>(json.size()))
-        throw std::runtime_error("Failed to receive JSON");
+    // ! bisognerebbe validare il JSON
 
     return json;
 }
