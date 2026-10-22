@@ -11,8 +11,8 @@ using namespace std;
 // #define NAME "CustomFish"
 
 // cmake --build build -j
-// ./main WHITE 60 127.0.0.1 -n player1
-// ./main BLACK 60 127.0.0.1 -n player2
+// ./build/player WHITE 60 127.0.0.1 -n player1 -m manual
+// ./build/player BLACK 60 127.0.0.1 -n player2 -m manual
 
 int main(int argc, char *argv[]){
 
