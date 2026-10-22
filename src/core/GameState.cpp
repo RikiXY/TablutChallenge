@@ -30,4 +30,5 @@ std::string GameState::winner(){
         return "BLACK";
     else if(currentTurn.getString() == "DRAW")
         return "DRAW";
+    else return "";
 }
