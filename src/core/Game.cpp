@@ -28,14 +28,16 @@ void Game::start(ServerConnector& gameConnection, std::string name, std::string 
 
         if(modality == "auto"){
             agentPlayer.getGameState(currentGameState);
-            if(agentPlayer.isMyTurn())
+            if(agentPlayer.isMyTurn()){}
                 // ! la logica di selezione non è ancora implementata 
                 agentPlayer.move(gameConnection, agentPlayer.chooseMove());  
         }
         else{
             humanPlayer.getGameState(currentGameState);  // il player riceve sempre subito lo stato aggiornato così può pensare intanto che l'altro giocatore sceglie
-            if(humanPlayer.isMyTurn())
+            if(humanPlayer.isMyTurn()){
+                std::cout<<"My turn"<<std::endl;
                 humanPlayer.move(gameConnection, humanPlayer.chooseMove());
+            }
             else 
                 std::cout<<"Opponent's turn"<<std::endl;
         }

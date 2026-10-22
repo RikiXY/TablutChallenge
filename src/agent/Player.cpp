@@ -6,16 +6,15 @@ Player::Player(std::string role)
     : role(role) {}
 
 void Player::getGameState(GameState gameState){
-    std::cout<<"Recieved board: "<<std::endl;
+    std::cout<<"Receieved board: "<<std::endl;
     board = gameState.getBoard();
     board.showState();
     
-    std::cout<<std::endl<<"Recieved turn: ";
+    std::cout<<std::endl<<"Receieved turn: ";
     Turn turn = gameState.getTurn();
+    turn.showState();
 
     myTurn = (turn.getString() == role) ? true : false;
-    
-    std::cout<<std::endl;
 }
 
 bool Player::isMyTurn(){

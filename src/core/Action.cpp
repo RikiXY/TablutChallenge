@@ -16,6 +16,7 @@ void Action::toString(){
 }
 
 std::string Action::getString(){
+    toString();
     return jsonFormat;
 }
 
