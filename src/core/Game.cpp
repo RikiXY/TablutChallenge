@@ -28,7 +28,7 @@ void Game::start(ServerConnector& gameConnection, std::string name, std::string 
 
         if(modality == "auto"){
             agentPlayer.getGameState(currentGameState);
-            if(agentPlayer.isMyTurn()){}
+            if(agentPlayer.isMyTurn())
                 // ! la logica di selezione non è ancora implementata 
                 agentPlayer.move(gameConnection, agentPlayer.chooseMove());  
         }
