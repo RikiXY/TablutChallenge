@@ -5,10 +5,8 @@ cmake_install.cmake
 Makefile
 install_manifest.txt
 compile_commands.json
-build/player
+/build/
 
-# Temporary files
-*.tmp
-*.log
-*.bak
-*.swp
+# VS Code local settings (optional)
+/.vscode/
+
