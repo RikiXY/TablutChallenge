@@ -1,7 +1,7 @@
 #include "core/Game.hpp"
 #include <iostream>
 
-void Game::start(ServerConnector& gameConnection, std::string name, std::string role){
+void Game::start(ServerConnector& gameConnection, std::string name, std::string role, std::string modality){
 
     gameConnection.joinGame(name);
     std::cout<<"Name sent to server"<<std::endl;
@@ -27,11 +27,15 @@ void Game::start(ServerConnector& gameConnection, std::string name, std::string 
         
         // * Gestione turni
         if(currentTurn.getTurn() == role){
-            // ! selettore mossa
-            // ! invio mossa
             std::cout<<"My turn"<<std::endl;
-            std::cin.get();
-            return;
+            
+            if(modality == "auto"){
+                //TODO selettore automatico 
+            }
+            else {
+                
+            }
+            // ! invio mossa
         }
         else {
             // * aspetto il mio turno

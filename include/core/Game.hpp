@@ -5,5 +5,5 @@
 
 class Game{
     public:
-    void start(ServerConnector&, std::string, std::string);
+    void start(ServerConnector&, std::string, std::string, std::string);
 };
