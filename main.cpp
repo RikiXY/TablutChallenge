@@ -58,6 +58,7 @@ int main(int argc, char *argv[]){
     cout<<"Joining game"<<endl;
     game.start(connection, name, role, playMode);  // Join game on <connection> with <name> id
     
+    connection.endConnection();
 
     return 0;
 }

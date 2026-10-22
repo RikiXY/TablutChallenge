@@ -48,7 +48,6 @@ void Game::start(ServerConnector& gameConnection, std::string name, std::string 
             else
                 std::cout<<std::endl<<"SHAME ON YOU"<<std::endl;
             break;
-        }
-        
+        }   
     }
 }

@@ -91,3 +91,8 @@ void ServerConnector::sendAction(std::string action){
     sendAllBytes(&actionSize, sizeof(actionSize), MSG_NOSIGNAL);
     sendAllBytes(action.data(), action.size(), MSG_NOSIGNAL);
 }
+
+void ServerConnector::endConnection(){
+    close(clientSocket);
+    clientSocket = -1;
+}
