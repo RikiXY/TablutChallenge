@@ -35,6 +35,8 @@ void ServerConnector::sendAllBytes(void* buffer, size_t size, int flag){
         sent = send(clientSocket, buffer + totalSent, size - totalSent, flag);  // the buffer pointer shifts and the size must be decreased
         if (sent > 0)
             totalSent += static_cast<size_t>(sent);
+        else if (sent == 0) 
+            break;
         else if (sent == -1)
             throw std::runtime_error("Failed to send data");
     }
@@ -61,6 +63,8 @@ void ServerConnector::receiveAllBytes(void* buffer, size_t size, int flag){
         received = recv(clientSocket, buffer + totalReceived, size - totalReceived, flag); // chiamata bloccante
         if (received > 0)
             totalReceived += static_cast<size_t>(received);
+        else if (received == 0) 
+            break;
         else if (received == -1)
             throw std::runtime_error("Failed to receive data");
     } 
