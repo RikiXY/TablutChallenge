@@ -8,14 +8,14 @@ void Board::updateState(std::string rawJson) {
     board = translator.getBoard();
 }
 
-// void Board::showState(){
-//     for(int i = 0; i < 9; i++){
-//         for(int j = 0; j < 9; j++){
-//             std::cout<<static_cast<int>(board[i][j]);
-//         }
-//         std::cout<<std::endl;
-//     }
-// }
+void Board::showNumericalState(){
+    for(int i = 0; i < 9; i++){
+        for(int j = 0; j < 9; j++){
+            std::cout<<static_cast<int>(board[i][j]);
+        }
+        std::cout<<std::endl;
+    }
+}
 
 void Board::showState() {
     std::cout<<"\n     a b c d e f g h i\n";

@@ -12,5 +12,6 @@ class Board{
     public:
     void updateState(std::string);
     void showState();
+    void showNumericalState();
     BoardMatrix getBoardMatrix();
 };
