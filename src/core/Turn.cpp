@@ -3,6 +3,7 @@
 #include <iostream>
 
 void Turn::updateState(std::string rawJson){
+    // ! Dovrei controllare che la il turn esista davvero nel JSON
     Translator translator(rawJson);
     turn = translator.getTurn();
 }

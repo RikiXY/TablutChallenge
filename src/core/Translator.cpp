@@ -27,6 +27,7 @@ Translator::Translator(std::string json){
     if (doc.HasParseError())
         throw std::runtime_error("Invalid JSON");
 
+    // ! non controllo la struttura del JSON. Do per scontato che sia ok
     auto& jsonBoard = doc["board"];
 
     // ? Dovrei ottimizzarlo confrontando stati precedenti e successivi
