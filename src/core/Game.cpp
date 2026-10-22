@@ -13,8 +13,8 @@ void Game::start(ServerConnector& gameConnection, std::string name, std::string 
     Board currentBoard;
     Turn currentTurn;
 
-    Agent agent;
-    Human player;
+    Human humanPlayer(role);
+    Agent agentPlayer(role);
 
     std::cout<<std::endl<<"=============================="<<std::endl<<std::endl;
 
@@ -26,7 +26,19 @@ void Game::start(ServerConnector& gameConnection, std::string name, std::string 
         currentBoard = currentGameState.getBoard();
         currentTurn = currentGameState.getTurn();
 
-        player.getGameState(currentGameState);  // il player riceve sempre subito lo stato aggiornato così può pensare intanto che l'altro giocatore sceglie
+        if(modality == "auto"){
+            agentPlayer.getGameState(currentGameState);
+            if(agentPlayer.isMyTurn())
+                // ! la logica di selezione non è ancora implementata 
+                agentPlayer.move(gameConnection, agentPlayer.chooseMove());  
+        }
+        else{
+            humanPlayer.getGameState(currentGameState);  // il player riceve sempre subito lo stato aggiornato così può pensare intanto che l'altro giocatore sceglie
+            if(humanPlayer.isMyTurn())
+                humanPlayer.move(gameConnection, humanPlayer.chooseMove());
+            else 
+                std::cout<<"Opponent's turn"<<std::endl;
+        }
         
         if(currentGameState.isOver()){
             if(currentGameState.winner() == role)
@@ -38,32 +50,5 @@ void Game::start(ServerConnector& gameConnection, std::string name, std::string 
             break;
         }
         
-        
-        // * Gestione turni
-        if(currentTurn.getTurn() == role){
-            std::cout<<"My turn"<<std::endl;
-            
-            if(modality == "auto"){
-                //TODO selettore automatico 
-            }
-            else { // manual selection
-                std::string from;
-                std::string to;
-                std::cout<<"Enter starting position: "; std::cin>>from;
-                std::cout<<"Enter ending position: "; std::cin>>to;
-                player.move(gameConnection, from, to);
-            }
-            // ! invio mossa
-        }
-        else {
-            // * aspetto il mio turno
-            std::cout<<"Opponent's turn"<<std::endl;
-        }
     }
-    
-
-    
-     
-
-
 }

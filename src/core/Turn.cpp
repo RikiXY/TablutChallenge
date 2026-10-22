@@ -11,6 +11,6 @@ void Turn::showState(){
     std::cout<<turn<<std::endl;
 }
 
-std::string Turn::getTurn(){
+std::string Turn::getString(){
     return turn;
 }

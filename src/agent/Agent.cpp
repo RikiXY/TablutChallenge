@@ -1,15 +1,8 @@
 #include "agent/Agent.hpp"
 
-void Agent::validateMove(){
+Agent::Agent(std::string role) : Player(role) {}  // richiama il costruttore della classe madre
 
+Action Agent::chooseMove(){
+    // TODO selettore mosse AI agent
+    return Action("", "", "");
 }
-
-void Agent::chooseMove(){
-
-}
-
-void Agent::move(){
-    chooseMove();
-    
-}
-

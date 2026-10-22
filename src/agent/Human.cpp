@@ -3,21 +3,22 @@
 #include <iostream>
 #include "core/Action.hpp"
 
-void Human::move(ServerConnector& gameConnection, std::string from, std::string to){
-    // ! manca la validazione perché diamo per scontato, almeno per questi test, che il player sappia che sta facendo
-    Action action(from, to, role);
-    std::cout<<action.getString()<<std::endl;
-    gameConnection.sendAction(action.getString());
-    std::cout<<"sent"<<std::endl;
-}
+Human::Human(std::string role): Player(role) {}  // richiama il costruttore della classe madre
 
-void Human::getGameState(GameState gameState){
-    
-    std::cout<<"Recieved board: "<<std::endl;
-    gameState.getBoard().showState();
-    
-    std::cout<<std::endl<<"Recieved turn: ";
-    gameState.getTurn().showState();
-    
-    std::cout<<std::endl;
+Action Human::chooseMove(){
+    std::string from;
+    std::string to;
+
+    // * validation
+    while(1){
+        std::cout<<"Enter starting position: "; std::cin>>from;
+        std::cout<<"Enter ending position: "; std::cin>>to;
+        Action action(from, to, role);
+
+        std::cout<<"Chosen move: "<<std::endl;
+        std::cout<<action.getString()<<std::endl;
+
+        if(action.isValid()) 
+            return action;
+    }
 }

@@ -1,14 +1,9 @@
 #pragma once
 
-#include "core/GameState.hpp"
-#include "connections/ServerConnector.hpp"
+#include "Player.hpp"
 
-class Human{
-    private:
-    BoardMatrix boardMatrix;
-    std::string role;
-
+class Human : public Player{
     public:
-    void getGameState(GameState);
-    void move(ServerConnector&, std::string, std::string);
+    Human(std::string role);
+    Action chooseMove() override;
 };

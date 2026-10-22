@@ -24,6 +24,7 @@ add_executable(TablutChallenge
     src/connections/ServerConnector.cpp
     
     # Agents
+    src/agent/Player.cpp
     src/agent/Agent.cpp
     src/agent/Human.cpp
 )

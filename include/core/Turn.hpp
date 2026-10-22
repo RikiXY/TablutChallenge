@@ -9,5 +9,5 @@ class Turn{
     public:
     void updateState(std::string);
     void showState();
-    std::string getTurn();
+    std::string getString();
 };

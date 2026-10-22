@@ -1,10 +1,9 @@
 #pragma once
 
-class Agent{
-    private:
-    void validateMove();
-    void chooseMove();
-    
+#include "Player.hpp"
+
+class Agent : public Player{
     public:
-    void move();
+    Agent(std::string role);
+    Action chooseMove() override;
 };

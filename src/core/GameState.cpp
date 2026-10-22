@@ -7,7 +7,7 @@ void GameState::update(std::string rawJson){
     // * Check turn
     currentTurn.updateState(rawJson);
 
-    if (currentTurn.getTurn() == "WHITEWIN" || currentTurn.getTurn() == "BLACKWIN" || currentTurn.getTurn() == "DRAW")
+    if (currentTurn.getString() == "WHITEWIN" || currentTurn.getString() == "BLACKWIN" || currentTurn.getString() == "DRAW")
         finished = true;
 }
 
@@ -24,10 +24,10 @@ bool GameState::isOver(){
 }
 
 std::string GameState::winner(){
-    if(currentTurn.getTurn() == "WHITEWIN")
+    if(currentTurn.getString() == "WHITEWIN")
         return "WHITE";
-    else if(currentTurn.getTurn() == "BLACKWIN")
+    else if(currentTurn.getString() == "BLACKWIN")
         return "BLACK";
-    else if(currentTurn.getTurn() == "DRAW")
+    else if(currentTurn.getString() == "DRAW")
         return "DRAW";
 }

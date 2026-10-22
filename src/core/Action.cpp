@@ -5,14 +5,21 @@
 Action::Action(std::string from, std::string to, std::string turn)
     : from(from), to(to), turn(turn) {}
 
-std::string Action::getString(){
-    std::string json = "";
-    json += "{\n";
-    json += "  \"from\": \"" + from + "\",\n";
-    json += "  \"to\": \"" + to + "\",\n";
+void Action::toString(){
+    jsonFormat = "";   
+    jsonFormat += "{\n";
+    jsonFormat += "  \"from\": \"" + from + "\",\n";
+    jsonFormat += "  \"to\": \"" + to + "\",\n";
     std::transform(turn.begin(), turn.end(), turn.begin(), ::toupper);
-    json += "  \"turn\": \"" + turn + "\"\n";
-    json += "}";
-    
-    return json;
+    jsonFormat += "  \"turn\": \"" + turn + "\"\n";  // fun fact: funziona anche senza specificare il ruolo, inviando "turn": ""
+    jsonFormat += "}";
+}
+
+std::string Action::getString(){
+    return jsonFormat;
+}
+
+bool Action::isValid(){
+    // TODO assumiamo che sia valido. Va implementato
+    return true;
 }
