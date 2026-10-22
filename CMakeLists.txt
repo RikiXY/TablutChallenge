@@ -18,13 +18,13 @@ add_executable(TablutChallenge
     src/core/GameState.cpp
     src/core/Translator.cpp
     src/core/Turn.cpp
+    src/core/Action.cpp
 
     # Connections
     src/connections/ServerConnector.cpp
 
     # Agents
     src/agent/Agent.cpp
-    src/agent/FirstLegalAgent.cpp
 )
 
 # Header files
