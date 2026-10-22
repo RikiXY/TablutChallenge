@@ -10,7 +10,7 @@ using namespace std;
 
 // #define NAME "CustomFish"
 
-// g++ -std=c++20 -Iinclude main.cpp $(find src -name "*.cpp") -o main
+// cmake --build build -j
 // ./main WHITE 60 127.0.0.1 -n player1
 // ./main BLACK 60 127.0.0.1 -n player2
 
@@ -25,7 +25,7 @@ int main(int argc, char *argv[]){
     int timeout = stoi(argv[2]);
     string name = (string(argv[4]) == "-n" || string(argv[4]) == "--name") ? string(argv[5]) : "CustomFish";
 
-    ServerConnector connection(argv[3], port);
+    ServerConnector connection(argv[3], port);  // argv[3] is IP
     connection.connectToServer();
     cout<<"Connected"<<endl;
 
