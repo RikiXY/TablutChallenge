@@ -9,6 +9,8 @@ void GameState::update(std::string rawJson){
 
     if (currentTurn.getString() == "WHITEWIN" || currentTurn.getString() == "BLACKWIN" || currentTurn.getString() == "DRAW")
         finished = true;
+    else 
+        finished = false;
 }
 
 Board GameState::getBoard(){
