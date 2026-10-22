@@ -1,4 +1,6 @@
 #include "core/Game.hpp"
+#include "agent/Human.hpp"
+#include "agent/Agent.hpp"
 #include <iostream>
 
 void Game::start(ServerConnector& gameConnection, std::string name, std::string role, std::string modality){
@@ -10,20 +12,21 @@ void Game::start(ServerConnector& gameConnection, std::string name, std::string 
     GameState currentGameState;
     Board currentBoard;
     Turn currentTurn;
+
+    Agent agent;
+    Human player;
+
+    std::cout<<std::endl<<"=============================="<<std::endl<<std::endl;
+
     do {
         std::cout<<"Waiting for server response..."<<std::endl;
         currentGameState.update(gameConnection.receiveJson());
         std::cout<<"State received"<<std::endl;
         
-        std::cout<<std::endl<<"=============================="<<std::endl<<std::endl;
-        
         currentBoard = currentGameState.getBoard();
-        std::cout<<"Current board:"<<std::endl;
-        currentBoard.showState();
-
         currentTurn = currentGameState.getTurn();
-        std::cout<<std::endl<<"Current turn: ";
-        currentTurn.showState();
+        
+        player.getGameState(currentGameState);  // il player riceve sempre subito lo stato aggiornato così può pensare intanto che l'altro giocatore sceglie
         
         // * Gestione turni
         if(currentTurn.getTurn() == role){
@@ -32,8 +35,9 @@ void Game::start(ServerConnector& gameConnection, std::string name, std::string 
             if(modality == "auto"){
                 //TODO selettore automatico 
             }
-            else {
-                
+            else { // manual selection
+                std::cin.get();
+                player.move(gameConnection, "e3", "f3");
             }
             // ! invio mossa
         }

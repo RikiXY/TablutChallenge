@@ -16,4 +16,5 @@ class ServerConnector{
     void connectToServer();
     void joinGame(std::string name);
     std::string receiveJson();
+    void sendAction(std::string);
 };

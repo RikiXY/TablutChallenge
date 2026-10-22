@@ -81,3 +81,9 @@ std::string ServerConnector::receiveJson(){  // Receive from server a raw string
 
     return json;
 }
+
+void ServerConnector::sendAction(std::string action){
+    uint32_t actionSize = htonl(uint32_t(action.size()));
+    sendAllBytes(&actionSize, sizeof(actionSize), MSG_NOSIGNAL);
+    sendAllBytes(action.data(), action.size(), MSG_NOSIGNAL);
+}

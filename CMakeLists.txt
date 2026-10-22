@@ -19,6 +19,8 @@ add_executable(TablutChallenge
     src/core/Translator.cpp
     src/core/Turn.cpp
     src/core/Action.cpp
+    src/agent/Human.cpp
+    src/agent/Agent.cpp
 
     # Connections
     src/connections/ServerConnector.cpp
