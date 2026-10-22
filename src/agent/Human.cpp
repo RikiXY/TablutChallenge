@@ -15,10 +15,9 @@ void Human::getGameState(GameState gameState){
     
     std::cout<<"Recieved board: "<<std::endl;
     gameState.getBoard().showState();
-    boardMatrix = gameState.getBoard().getBoardMatrix();
     
     std::cout<<std::endl<<"Recieved turn: ";
     gameState.getTurn().showState();
-    role = gameState.getTurn().getTurn();
+    
     std::cout<<std::endl;
 }

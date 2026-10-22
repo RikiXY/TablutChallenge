@@ -18,15 +18,26 @@ void Game::start(ServerConnector& gameConnection, std::string name, std::string 
 
     std::cout<<std::endl<<"=============================="<<std::endl<<std::endl;
 
-    do {
+    while(1) {
         std::cout<<"Waiting for server response..."<<std::endl;
         currentGameState.update(gameConnection.receiveJson());
         std::cout<<"State received"<<std::endl;
         
         currentBoard = currentGameState.getBoard();
         currentTurn = currentGameState.getTurn();
-        
+
         player.getGameState(currentGameState);  // il player riceve sempre subito lo stato aggiornato così può pensare intanto che l'altro giocatore sceglie
+        
+        if(currentGameState.isOver()){
+            if(currentGameState.winner() == role)
+                std::cout<<std::endl<<"YOU ARE THE WINNER"<<std::endl;
+            else if(currentGameState.winner() == "DRAW")
+                std::cout<<std::endl<<"Mh. Better luck next time I guess"<<std::endl;
+            else
+                std::cout<<std::endl<<"SHAME ON YOU"<<std::endl;
+            break;
+        }
+        
         
         // * Gestione turni
         if(currentTurn.getTurn() == role){
@@ -36,8 +47,11 @@ void Game::start(ServerConnector& gameConnection, std::string name, std::string 
                 //TODO selettore automatico 
             }
             else { // manual selection
-                std::cin.get();
-                player.move(gameConnection, "e3", "f3");
+                std::string from;
+                std::string to;
+                std::cout<<"Enter starting position: "; std::cin>>from;
+                std::cout<<"Enter ending position: "; std::cin>>to;
+                player.move(gameConnection, from, to);
             }
             // ! invio mossa
         }
@@ -45,7 +59,7 @@ void Game::start(ServerConnector& gameConnection, std::string name, std::string 
             // * aspetto il mio turno
             std::cout<<"Opponent's turn"<<std::endl;
         }
-    } while(1);
+    }
     
 
     

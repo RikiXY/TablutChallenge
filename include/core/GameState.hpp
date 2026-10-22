@@ -7,9 +7,12 @@ class GameState{
     private:
     Board currentBoard;
     Turn currentTurn;
+    bool finished = false;
 
     public:
     void update(std::string);
     Board getBoard();
     Turn getTurn();
+    bool isOver();
+    std::string winner();
 };
