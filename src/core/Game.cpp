@@ -8,6 +8,7 @@ void Game::start(ServerConnector& gameConnection, std::string name, std::string 
     gameConnection.joinGame(name);
     std::cout<<"Name sent to server"<<std::endl;
     std::cout<<"The server will respond once the other player has connected"<<std::endl;
+    std::cout<<std::endl<<"=============================="<<std::endl<<std::endl;
 
     GameState currentGameState;
     Board currentBoard;
@@ -15,8 +16,6 @@ void Game::start(ServerConnector& gameConnection, std::string name, std::string 
 
     Human humanPlayer(role);
     Agent agentPlayer(role);
-
-    std::cout<<std::endl<<"=============================="<<std::endl<<std::endl;
 
     while(1) {
         std::cout<<"Waiting for server response..."<<std::endl;
@@ -28,13 +27,21 @@ void Game::start(ServerConnector& gameConnection, std::string name, std::string 
 
         if(modality == "auto"){
             agentPlayer.getGameState(currentGameState);
-            if(agentPlayer.isMyTurn())
+            if(agentPlayer.isMyTurn()){
+                std::cout<<"My turn"<<std::endl;
+                // ! Far partire il timer qui (non usiamo 60s, teniamo un margine)
                 // ! la logica di selezione non è ancora implementata 
                 agentPlayer.move(gameConnection, agentPlayer.chooseMove());  
+            }
+            else{
+                std::cout<<"Opponent's turn"<<std::endl;
+                std::cout<<std::endl<<"=============================="<<std::endl<<std::endl;
+            }
         }
         else{
             humanPlayer.getGameState(currentGameState);  // il player riceve sempre subito lo stato aggiornato così può pensare intanto che l'altro giocatore sceglie
             if(humanPlayer.isMyTurn()){
+                // ! Far partire il timer qui (non usiamo 60s, teniamo un margine)
                 std::cout<<"My turn"<<std::endl;
                 humanPlayer.move(gameConnection, humanPlayer.chooseMove());
             }

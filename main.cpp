@@ -53,7 +53,6 @@ int main(int argc, char *argv[]){
     connection.connectToServer();
     cout<<"Connected"<<endl;
 
-    //TODO: far partire il timer qui (?)
     Game game;
     cout<<"Joining game"<<endl;
     game.start(connection, name, role, playMode);  // Join game on <connection> with <name> id
