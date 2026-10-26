@@ -9,6 +9,6 @@ class Agent : public Player{
     std::vector<std::array<std::string, 2>> generateTree();
 
     public:
-    Agent(std::string role);
+    Agent(ServerConnector& gameConnection, std::string role);
     Action chooseMove() override;
 };

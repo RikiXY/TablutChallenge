@@ -2,10 +2,10 @@
 
 #include <iostream>
 
-Player::Player(std::string role)
-    : role(role) {}
+Player::Player(ServerConnector& gameConnection, std::string role)
+    : gameConnection(gameConnection), role(role) {}
 
-void Player::getGameState(GameState gameState){
+void Player::setGameState(GameState gameState){
     std::cout<<"Receieved board: "<<std::endl;
     board = gameState.getBoard();
     board.showState();
@@ -21,7 +21,7 @@ bool Player::isMyTurn(){
     return myTurn;
 }
 
-void Player::move(ServerConnector& gameConnection, Action action){
+void Player::move(Action action){
     gameConnection.sendAction(action.getString());
     std::cout<<"Action sent"<<std::endl;
 }

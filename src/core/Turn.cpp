@@ -2,10 +2,8 @@
 #include "core/Translator.hpp"
 #include <iostream>
 
-void Turn::updateState(std::string rawJson){
-    // ! Dovrei controllare che la il turn esista davvero nel JSON
-    Translator translator(rawJson);
-    turn = translator.getTurn();
+void Turn::setTurn(std::string givenTurn){
+    turn = givenTurn;
 }
 
 void Turn::showState(){

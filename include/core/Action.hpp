@@ -14,5 +14,4 @@ class Action{
     Action(std::string from, std::string to, std::string turn);
     // ? dovrei mettere il distruttore
     std::string getString();
-    bool isValid();
 };

@@ -2,10 +2,8 @@
 #include "core/Translator.hpp"
 #include <iostream>
 
-void Board::updateState(std::string rawJson) {
-    // ! Dovrei controllare che la board esista davvero nel JSON
-    Translator translator(rawJson);
-    board = translator.getBoard();
+void Board::setBoard(BoardMatrix givenBoard){
+    board = givenBoard;
 }
 
 void Board::showNumericalState(){

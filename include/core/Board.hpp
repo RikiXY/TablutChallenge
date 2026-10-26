@@ -10,7 +10,7 @@ class Board{
     BoardMatrix board {};  // con {} inizializzo tutto a 0
     
     public:
-    void updateState(std::string);
+    void setBoard(BoardMatrix givenBoard);
     void showState();
     void showNumericalState();
     BoardMatrix getBoardMatrix();

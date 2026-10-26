@@ -4,6 +4,6 @@
 
 class Human : public Player{
     public:
-    Human(std::string role);
+    Human(ServerConnector& gameConnection, std::string role);
     Action chooseMove() override;
 };

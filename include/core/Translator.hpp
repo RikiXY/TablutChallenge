@@ -1,18 +1,16 @@
 #pragma once
 
 #include <string>
-#include <array>
-#include <vector>
-
-using BoardMatrix = std::array<std::array<uint8_t, 9>, 9>;
+#include "core/Board.hpp"
+#include "core/Turn.hpp"
 
 class Translator{
     private:
-    BoardMatrix board;
-    std::string turn;
+    Board transaltedBoard;
+    Turn translatedTurn;
 
     public:
     Translator(std::string);
-    BoardMatrix getBoard();  // input json → update current board
-    std::string getTurn();  // input json → update current turn
+    Board getBoard();  // input json → update current board
+    Turn getTurn();  // input json → update current turn
 };

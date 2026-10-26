@@ -7,7 +7,7 @@ class Turn{
     std::string turn;
     
     public:
-    void updateState(std::string);
+    void setTurn(std::string givenTurn);
     void showState();
     std::string getString();
 };

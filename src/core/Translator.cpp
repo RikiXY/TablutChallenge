@@ -30,6 +30,8 @@ Translator::Translator(std::string json){
     // ! non controllo la struttura del JSON. Do per scontato che sia ok
     auto& jsonBoard = doc["board"];
 
+    BoardMatrix board;
+
     // ? Dovrei ottimizzarlo confrontando stati precedenti e successivi
     for(int i = 0; i < 9; i++){
         for(int j = 0; j < 9; j++){
@@ -42,13 +44,15 @@ Translator::Translator(std::string json){
             else throw std::invalid_argument("Anomaly in JSON board detected");
         }
     }
-    turn = doc["turn"].GetString();
+    transaltedBoard.setBoard(board);
+
+    translatedTurn.setTurn(doc["turn"].GetString());
 }
 
-std::array<std::array<uint8_t, 9>, 9> Translator::getBoard(){
-    return board;
+Board Translator::getBoard(){
+    return transaltedBoard;
 }
 
-std::string Translator::getTurn(){
-    return turn;
+Turn Translator::getTurn(){
+    return translatedTurn;
 }

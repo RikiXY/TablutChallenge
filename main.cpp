@@ -30,24 +30,24 @@ int main(int argc, char *argv[]){
         );
 
     uint16_t port = 
-    (role == "WHITE") 
-    ? 5800 
-    : 5801; // Ports defined in TablutCompetition/Tablut/src/.../util/Configuration.java
+        (role == "WHITE") 
+        ? 5800 
+        : 5801; // Ports defined in TablutCompetition/Tablut/src/.../util/Configuration.java
 
     int timeout = stoi(argv[2]);
 
     string name = 
-    (string_view(argv[4]) == "-n" || string_view(argv[4]) == "--name")
-    ? static_cast<string>(argv[5])
-    : "CustomFish";
+        (string_view(argv[4]) == "-n" || string_view(argv[4]) == "--name")
+        ? static_cast<string>(argv[5])
+        : "CustomFish";
 
     string playMode = 
-    (string_view(argv[6]) == "-m" || string_view(argv[6]) == "--mode") 
-    ? ((string_view(argv[7]) == "manual") 
-        ? "manual" 
-        : "auto"
-    ) 
-    : "auto";
+        (string_view(argv[6]) == "-m" || string_view(argv[6]) == "--mode") 
+        ? ((string_view(argv[7]) == "manual") 
+            ? "manual" 
+            : "auto"
+        ) 
+        : "auto";
 
     ServerConnector connection(argv[3], port);  // argv[3] is IP
     connection.connectToServer();

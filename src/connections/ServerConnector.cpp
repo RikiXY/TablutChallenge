@@ -28,11 +28,13 @@ void ServerConnector::connectToServer(){
         throw std::domain_error("Connection failed");
 }
 
-void ServerConnector::sendAllBytes(void* buffer, size_t size, int flag){
+void ServerConnector::sendAllBytes(void* buffer, size_t size, int flag){  // dato che il buffer può essere il puntatore di un intero come di una stringa devo mettere void* che indica un puntatore generico
+                                                                          // con un puntatore generico il compilatore non sa come fare la somma tra puntatori (i.e. int* +1 sposta di 4 byte, char* +1 sposta di 1 byte)
+                                                                          // quindi dato che io voglio sempre spostarmi byte per byte faccio un cast a char* in send()
     ssize_t sent = 0;
     size_t totalSent = 0;
     while(totalSent < size){
-        sent = send(clientSocket, buffer + totalSent, size - totalSent, flag);  // the buffer pointer shifts and the size must be decreased
+        sent = send(clientSocket, static_cast<char*>(buffer) + totalSent, size - totalSent, flag);  // the buffer pointer shifts and the size must be decreased
         if (sent > 0)
             totalSent += static_cast<size_t>(sent);
         else if (sent == 0) 
@@ -60,7 +62,7 @@ void ServerConnector::receiveAllBytes(void* buffer, size_t size, int flag){
     ssize_t received = 0;
     size_t totalReceived = 0;
     while(totalReceived < size){
-        received = recv(clientSocket, buffer + totalReceived, size - totalReceived, flag); // chiamata bloccante
+        received = recv(clientSocket, static_cast<char*>(buffer) + totalReceived, size - totalReceived, flag); // chiamata bloccante
         if (received > 0)
             totalReceived += static_cast<size_t>(received);
         else if (received == 0) 

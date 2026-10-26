@@ -19,8 +19,3 @@ std::string Action::getString(){
     toString();
     return jsonFormat;
 }
-
-bool Action::isValid(){
-    // TODO assumiamo che sia valido. Va implementato
-    return true;
-}

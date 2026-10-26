@@ -2,7 +2,8 @@
 #include <iostream>
 #include <cstdlib>
 
-Agent::Agent(std::string role) : Player(role) {}  // richiama il costruttore della classe madre
+Agent::Agent(ServerConnector& gameConnection, std::string role) 
+    : Player(gameConnection, role) {}  // richiama il costruttore della classe madre
 
 std::string convertToCoord(uint8_t X, uint8_t Y){
     std::string riga = std::to_string(X+1);
