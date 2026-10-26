@@ -14,6 +14,7 @@ class Player{
 
     public:
     Player(ServerConnector& gameConnection, std::string role);
+    virtual ~Player() = default;
     void setGameState(GameState gameState);  
     bool isMyTurn();
     virtual Action chooseMove() = 0;  // metodo virtuale puro che deve essere per forza definito dalle classi figlie
