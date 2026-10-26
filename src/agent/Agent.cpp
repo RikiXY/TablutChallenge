@@ -112,6 +112,7 @@ std::vector<std::array<std::string, 2>> Agent::generateTree(){ // vettore di "tu
 Action Agent::chooseMove(){
     std::vector<std::array<std::string, 2>> mosse = generateTree();
     // ! seleziona una mossa casuale disponibile
-    std::cout<<"Chosen move: \n\tfrom "<<mosse[0][0]<<" to "<<mosse[0][1]<<std::endl;
-    return Action(mosse[0][0], mosse[0][1], role);
+    int mossa = rand() % mosse.size();
+    std::cout<<"Chosen move: \n\tfrom "<<mosse[mossa][0]<<" to "<<mosse[mossa][1]<<std::endl;
+    return Action(mosse[mossa][0], mosse[mossa][1], role);
 }
