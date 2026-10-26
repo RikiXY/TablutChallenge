@@ -3,6 +3,8 @@
 // 1. i casting possono essere eseguiti o tramite reinterpret_cast<TYPE>(OBJ) (o static_cast<TYPE>(OBJ) ) o tramite TYPE(OBJ), niente (TYPE)OBJ
 
 #include <iostream>
+#include <cstdlib>
+#include <ctime>
 #include "connections/ServerConnector.hpp"
 #include "core/Game.hpp"
 
@@ -52,6 +54,8 @@ int main(int argc, char *argv[]){
     ServerConnector connection(argv[3], port);  // argv[3] is IP
     connection.connectToServer();
     cout<<"Connected"<<endl;
+
+    std::srand(std::time(nullptr));
 
     Game game;
     cout<<"Joining game"<<endl;

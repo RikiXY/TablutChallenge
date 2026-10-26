@@ -33,6 +33,36 @@ std::string convertToCoord(uint8_t X, uint8_t Y){
     return colonna + riga;
 }
 
+bool isIllegal(uint8_t currentX, uint8_t currentY, uint8_t newX, uint8_t newY){
+    if(newX == 4 && newY == 4)
+        return true;
+
+    if((currentX == 0 && currentY == 4) ||
+        (currentX == 4 && currentY == 0) ||
+        (currentX == 4 && currentY == 8) ||
+        (currentX == 7 && currentY == 4)){
+            return false;
+        }
+    switch(newX){
+        case 0:
+            return (newY == 3 || newY == 4 || newY == 5) ? true : false; break;
+        case 1:
+            return (newY == 4) ? true : false; break;
+        case 3:
+            return (newY == 0 || newY == 8) ? true : false; break;
+        case 4:
+            return (newY == 0 || newY == 1 || newY == 7 || newY == 8) ? true : false; break;
+        case 5:
+            return (newY == 0 || newY == 8) ? true : false; break;
+        case 7:
+            return (newY == 4) ? true : false; break;
+        case 8:
+            return (newY == 3 || newY == 4 || newY == 5) ? true : false; break;
+        default:
+            return false; break;
+    }
+}
+
 // TODO improve this generation pls
 std::vector<std::array<std::string, 2>> Agent::generateMoves(BoardMatrix initialState, uint8_t X, uint8_t Y){
     
@@ -42,6 +72,8 @@ std::vector<std::array<std::string, 2>> Agent::generateMoves(BoardMatrix initial
     // check sx
     int i = Y;
     while(i > 0 && initialState[X][i-1] == 0){
+        if(isIllegal(X, Y, X, i-1))
+            break;
         newState[0] = convertToCoord(X, Y);
         newState[1] = convertToCoord(X, i-1);
         allStatesForOnePawn.push_back(newState);
@@ -51,6 +83,8 @@ std::vector<std::array<std::string, 2>> Agent::generateMoves(BoardMatrix initial
     // check sx
     i = Y;
     while(i < 8 && initialState[X][i+1] == 0){
+        if(isIllegal(X, Y, X, i+1))
+            break;
         newState[0] = convertToCoord(X, Y);
         newState[1] = convertToCoord(X, i+1);
         allStatesForOnePawn.push_back(newState);
@@ -60,6 +94,8 @@ std::vector<std::array<std::string, 2>> Agent::generateMoves(BoardMatrix initial
     // check up
     i = X;
     while(i > 0 && initialState[i-1][Y] == 0){
+        if(isIllegal(X, Y, i-1, Y))
+            break;
         newState[0] = convertToCoord(X, Y);
         newState[1] = convertToCoord(i-1, Y);
         allStatesForOnePawn.push_back(newState);
@@ -69,6 +105,8 @@ std::vector<std::array<std::string, 2>> Agent::generateMoves(BoardMatrix initial
     // check down
     i = X;
     while(i < 8 && initialState[i+1][Y] == 0){
+        if(isIllegal(X, Y, i+1, Y))
+            break;
         newState[0] = convertToCoord(X, Y);
         newState[1] = convertToCoord(i+1, Y);
         allStatesForOnePawn.push_back(newState);
