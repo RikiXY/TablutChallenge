@@ -67,6 +67,7 @@ std::vector<std::array<std::string, 2>> Agent::generateMoves(BoardMatrix initial
     }
 
     // check down
+    i = X;
     while(i < 8 && initialState[i+1][Y] == 0){
         newState[0] = convertToCoord(X, Y);
         newState[1] = convertToCoord(i+1, Y);
@@ -94,15 +95,22 @@ std::vector<std::array<std::string, 2>> Agent::generateTree(){ // vettore di "tu
         000222000   
     */
     BoardMatrix initialState = board.getBoardMatrix();
-    uint8_t myPawns = (role == "WHITE") ? 1 : 2;
 
     std::vector<std::array<std::string, 2>> newLayer;
     
     for(int i = 0; i < 9; i++){
         for (int j = 0; j < 9; j++){
-            if (initialState[i][j] == myPawns){
-                std::vector<std::array<std::string, 2>> move = generateMoves(initialState, i, j);
-                newLayer.insert(newLayer.end(), move.begin(), move.end());
+            if (role == "WHITE"){
+                if (initialState[i][j] == 1 || initialState[i][j] == 3){  // or white pawns or king
+                    std::vector<std::array<std::string, 2>> move = generateMoves(initialState, i, j);
+                    newLayer.insert(newLayer.end(), move.begin(), move.end());
+                }
+            }
+            else{
+                if (initialState[i][j] == 2){ 
+                    std::vector<std::array<std::string, 2>> move = generateMoves(initialState, i, j);
+                    newLayer.insert(newLayer.end(), move.begin(), move.end());
+                }
             }
         }
     } 

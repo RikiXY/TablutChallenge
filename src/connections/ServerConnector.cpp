@@ -38,7 +38,7 @@ void ServerConnector::sendAllBytes(void* buffer, size_t size, int flag){  // dat
         if (sent > 0)
             totalSent += static_cast<size_t>(sent);
         else if (sent == 0) 
-            break;
+            throw std::runtime_error("Connection closed");
         else if (sent == -1)
             throw std::runtime_error("Failed to send data");
     }
@@ -66,7 +66,7 @@ void ServerConnector::receiveAllBytes(void* buffer, size_t size, int flag){
         if (received > 0)
             totalReceived += static_cast<size_t>(received);
         else if (received == 0) 
-            break;
+            throw std::runtime_error("Connection closed");
         else if (received == -1)
             throw std::runtime_error("Failed to receive data");
     } 
