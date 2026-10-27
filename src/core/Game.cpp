@@ -1,4 +1,5 @@
 #include "core/Game.hpp"
+#include "core/Translator.hpp"
 #include "agent/Human.hpp"
 #include "agent/Agent.hpp"
 #include <iostream>
@@ -10,14 +11,16 @@ void Game::start(ServerConnector& gameConnection, std::string name, std::string 
     std::cout<<"The server will respond once the other player has connected"<<std::endl;
     std::cout<<std::endl<<"=============================="<<std::endl<<std::endl;
 
-    GameState currentGameState(gameConnection);
+    Translator translator;
+    GameState currentGameState;
 
     Human humanPlayer(gameConnection, role);
     Agent agentPlayer(gameConnection, role);
 
     while(1) {
         std::cout<<"Waiting for server response..."<<std::endl;
-        currentGameState.update();
+        translator.update(gameConnection.receiveJson());
+        currentGameState.update(translator.getBoard(), translator.getTurn());
         std::cout<<"State received"<<std::endl;
 
         if(modality == "auto"){

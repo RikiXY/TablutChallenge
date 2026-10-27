@@ -40,79 +40,58 @@ bool isIllegal(uint8_t currentX, uint8_t currentY, uint8_t newX, uint8_t newY){
     if((currentX == 0 && currentY == 4) ||
         (currentX == 4 && currentY == 0) ||
         (currentX == 4 && currentY == 8) ||
-        (currentX == 7 && currentY == 4)){
+        (currentX == 8 && currentY == 4)){
             return false;
         }
     switch(newX){
         case 0:
-            return (newY == 3 || newY == 4 || newY == 5) ? true : false; break;
+            return (newY == 3 || newY == 5) ? true : false; break;
         case 1:
             return (newY == 4) ? true : false; break;
         case 3:
             return (newY == 0 || newY == 8) ? true : false; break;
         case 4:
-            return (newY == 0 || newY == 1 || newY == 7 || newY == 8) ? true : false; break;
+            return (newY == 1 || newY == 7) ? true : false; break;
         case 5:
             return (newY == 0 || newY == 8) ? true : false; break;
         case 7:
             return (newY == 4) ? true : false; break;
         case 8:
-            return (newY == 3 || newY == 4 || newY == 5) ? true : false; break;
+            return (newY == 3 || newY == 5) ? true : false; break;
         default:
             return false; break;
     }
 }
 
 // TODO improve this generation pls
-std::vector<std::array<std::string, 2>> Agent::generateMoves(BoardMatrix initialState, uint8_t X, uint8_t Y){
+std::vector<std::array<std::string, 2>> generateMoves(BoardMatrix initialState, uint8_t X, uint8_t Y){
     
     std::vector<std::array<std::string, 2>> allStatesForOnePawn;
     std::array<std::string, 2> newState;
 
-    // check sx
-    int i = Y;
-    while(i > 0 && initialState[X][i-1] == 0){
-        if(isIllegal(X, Y, X, i-1))
-            break;
-        newState[0] = convertToCoord(X, Y);
-        newState[1] = convertToCoord(X, i-1);
-        allStatesForOnePawn.push_back(newState);
-        i--;
-    }
+    int directions[4][2] = {
+        {0, -1},  // sinistra
+        {0, 1},   // destra
+        {-1, 0},  // alto
+        {1, 0}    // basso
+    };
 
-    // check sx
-    i = Y;
-    while(i < 8 && initialState[X][i+1] == 0){
-        if(isIllegal(X, Y, X, i+1))
-            break;
-        newState[0] = convertToCoord(X, Y);
-        newState[1] = convertToCoord(X, i+1);
-        allStatesForOnePawn.push_back(newState);
-        i++;
-    }
+    // ! idk, ho idea che quel break skippi delle combinazioni possibili
+    for (auto i : directions){  // per ogni vettore in directions 
+        uint8_t newX = X + i[0];  // il primo valore è i = [0, -1], quindi newX = X + (-1). uint8_t 0-1=255
+        uint8_t newY = Y + i[1];
+        while(newX >= 0 && newX < 9 && newY >= 0 && newY < 9 && initialState[newX][newY] == 0){
+            if (isIllegal(X, Y, newX, newY))
+                break;
 
-    // check up
-    i = X;
-    while(i > 0 && initialState[i-1][Y] == 0){
-        if(isIllegal(X, Y, i-1, Y))
-            break;
-        newState[0] = convertToCoord(X, Y);
-        newState[1] = convertToCoord(i-1, Y);
-        allStatesForOnePawn.push_back(newState);
-        i--;
-    }
+            newState[0] = convertToCoord(X, Y);
+            newState[1] = convertToCoord(newX, newY);
+            allStatesForOnePawn.push_back(newState);
 
-    // check down
-    i = X;
-    while(i < 8 && initialState[i+1][Y] == 0){
-        if(isIllegal(X, Y, i+1, Y))
-            break;
-        newState[0] = convertToCoord(X, Y);
-        newState[1] = convertToCoord(i+1, Y);
-        allStatesForOnePawn.push_back(newState);
-        i++;
+            newX += i[0];
+            newY += i[1];
+        }
     }
-
     return allStatesForOnePawn;
 }
 
@@ -158,8 +137,10 @@ std::vector<std::array<std::string, 2>> Agent::generateTree(){ // vettore di "tu
 
 Action Agent::chooseMove(){
     std::vector<std::array<std::string, 2>> mosse = generateTree();
+
     // ! seleziona una mossa casuale disponibile
     int mossa = rand() % mosse.size();
     std::cout<<"Chosen move: \n\tfrom "<<mosse[mossa][0]<<" to "<<mosse[mossa][1]<<std::endl;
+    
     return Action(mosse[mossa][0], mosse[mossa][1], role);
 }

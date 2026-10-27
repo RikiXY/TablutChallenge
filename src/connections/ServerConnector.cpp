@@ -24,7 +24,7 @@ void ServerConnector::connectToServer(){
                                                                 // l'address di default è 127.0.0.1
 
     if (connect(clientSocket, reinterpret_cast<sockaddr*>(&serverAddress), sizeof(serverAddress)) == -1)  //C++-style cast: reinterpret_cast<sockaddr*>(&serverAddress)
-                                                                                                            // C-style cast: (struct sockaddr*)&serverAddress
+                                                                                                          // C-style cast: (struct sockaddr*)&serverAddress
         throw std::domain_error("Connection failed");
 }
 

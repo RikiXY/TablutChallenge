@@ -1,13 +1,10 @@
 #include "core/GameState.hpp"
 #include "core/Translator.hpp"
 
-GameState::GameState(ServerConnector& gameConnection) :
-    gameConnection(gameConnection) {}
-
-void GameState::update(){
-    Translator translator(gameConnection.receiveJson());
-    currentBoard = translator.getBoard();
-    currentTurn = translator.getTurn();
+void GameState::update(Board newBoard, Turn newTurn){
+    
+    currentBoard = newBoard;
+    currentTurn = newTurn;
 
     if (currentTurn.getString() == "WHITEWIN" || currentTurn.getString() == "BLACKWIN" || currentTurn.getString() == "DRAW")
         finished = true;

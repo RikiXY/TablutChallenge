@@ -20,7 +20,7 @@
 }
 */
 
-Translator::Translator(std::string json){
+void Translator::update(std::string json){
 
     rapidjson::Document doc;
     doc.Parse(json.c_str());

@@ -3,9 +3,9 @@
 // 1. i casting possono essere eseguiti o tramite reinterpret_cast<TYPE>(OBJ) (o static_cast<TYPE>(OBJ) ) o tramite TYPE(OBJ), niente (TYPE)OBJ
 
 #include <iostream>
-#include <cstdlib>
-#include <ctime>
+#include "core/Parser.hpp"
 #include "connections/ServerConnector.hpp"
+#include <ctime>
 #include "core/Game.hpp"
 
 using namespace std;
@@ -13,53 +13,22 @@ using namespace std;
 // #define NAME "CustomFish"
 
 // cmake --build build -j
-// ./build/player WHITE 60 127.0.0.1 -n player1 -m manual
-// ./build/player BLACK 60 127.0.0.1 -n player2 -m manual
+// ./build/player WHITE 60 127.0.0.1 -n player1 -m auto
+// ./build/player BLACK 60 127.0.0.1 -n player2 -m auto
 
 int main(int argc, char *argv[]){
 
-    // TODO: deve passare a 4 e bisogna rimuovere l'opzione di test e usare solo NAME
-    if (argc < 8) 
-        throw invalid_argument("Missing arguments");
+    Parser parser(argc, argv);
 
-    string role = 
-        (string_view(argv[1]) == "WHITE") 
-        ? "WHITE" 
-        : (
-            (string_view(argv[1]) == "BLACK") 
-            ? "BLACK" 
-            : throw invalid_argument("Not a valid role")
-        );
-
-    uint16_t port = 
-        (role == "WHITE") 
-        ? 5800 
-        : 5801; // Ports defined in TablutCompetition/Tablut/src/.../util/Configuration.java
-
-    int timeout = stoi(argv[2]);
-
-    string name = 
-        (string_view(argv[4]) == "-n" || string_view(argv[4]) == "--name")
-        ? static_cast<string>(argv[5])
-        : "CustomFish";
-
-    string playMode = 
-        (string_view(argv[6]) == "-m" || string_view(argv[6]) == "--mode") 
-        ? ((string_view(argv[7]) == "manual") 
-            ? "manual" 
-            : "auto"
-        ) 
-        : "auto";
-
-    ServerConnector connection(argv[3], port);  // argv[3] is IP
+    ServerConnector connection(parser.ip, parser.port);
     connection.connectToServer();
     cout<<"Connected"<<endl;
 
-    std::srand(std::time(nullptr));
+    srand(time(nullptr));
 
     Game game;
     cout<<"Joining game"<<endl;
-    game.start(connection, name, role, playMode);  // Join game on <connection> with <name> id
+    game.start(connection, parser.name, parser.role, parser.playMode);  // Join game on <connection> with <name> id
     
     connection.endConnection();
 

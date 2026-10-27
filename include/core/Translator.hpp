@@ -10,7 +10,7 @@ class Translator{
     Turn translatedTurn;
 
     public:
-    Translator(std::string);
+    void update(std::string json);
     Board getBoard();  // input json → update current board
     Turn getTurn();  // input json → update current turn
 };
