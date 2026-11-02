@@ -33,36 +33,26 @@ bool isLegal(int fromRow, int fromCol, int toRow, int toCol) {
     return targetCamp == -1 || targetCamp == campOf(fromRow, fromCol); // The pawn can move to a camp only if it is already in that same camp
 }
 
-// TODO improve this generation pls
-std::vector<std::array<std::string, 2>> generateMoves(BoardMatrix initialState, uint8_t row, uint8_t col) {
+bool isOnBoard(int row, int col) {
+    return row >= 0 && row < 9 && col >= 0 && col < 9;
+}
 
-    std::vector<std::array<std::string, 2>> allStatesForOnePawn;
-    std::array<std::string, 2> newState;
+std::vector<std::array<std::string, 2>> generateMoves(const BoardMatrix &board, int row, int col) {
+    constexpr int directions[4][2] = {{0, -1}, {0, 1}, {-1, 0}, {1, 0}}; // left, right, up, down
+    const std::string from = convertToCoord(row, col);
+    std::vector<std::array<std::string, 2>> moves;
 
-    int directions[4][2] = {
-        {0, -1}, // sinistra
-        {0, 1},  // destra
-        {-1, 0}, // alto
-        {1, 0}   // basso
-    };
+    for (const auto &[dRow, dCol] : directions) {
+        int toRow = row + dRow;
+        int toCol = col + dCol;
 
-    // ! idk, ho idea che quel break skippi delle combinazioni possibili
-    for (auto i : directions) {     // per ogni vettore in directions
-        uint8_t toRow = row + i[0]; // il primo valore è i = [0, -1], quindi toRow = row + (-1). uint8_t 0-1=255
-        uint8_t toCol = col + i[1];
-        while (toRow >= 0 && toRow < 9 && toCol >= 0 && toCol < 9 && initialState[toRow][toCol] == 0) {
-            if (!isLegal(row, col, toRow, toCol))
-                break;
-
-            newState[0] = convertToCoord(row, col);
-            newState[1] = convertToCoord(toRow, toCol);
-            allStatesForOnePawn.push_back(newState);
-
-            toRow += i[0];
-            toCol += i[1];
+        while (isOnBoard(toRow, toCol) && board[toRow][toCol] == 0 && isLegal(row, col, toRow, toCol)) {
+            moves.push_back({from, convertToCoord(toRow, toCol)});
+            toRow += dRow;
+            toCol += dCol;
         }
     }
-    return allStatesForOnePawn;
+    return moves;
 }
 
 std::vector<std::array<std::string, 2>> Agent::generateTree() { // vettore di "tuple"
