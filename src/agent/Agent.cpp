@@ -55,47 +55,28 @@ std::vector<std::array<std::string, 2>> generateMoves(const BoardMatrix &board, 
     return moves;
 }
 
-std::vector<std::array<std::string, 2>> Agent::generateTree() { // vettore di "tuple"
-    // TreeGenerator generator;
-    // generator.generateTree();
+std::vector<std::array<std::string, 2>> Agent::generateAllMoves() {
+    const BoardMatrix currentBoard = board.getBoardMatrix(); // 0 empty, 1 white, 2 black, 3 king, 4 throne
+    const bool isWhite = role == "WHITE";
+    std::vector<std::array<std::string, 2>> moves;
 
-    // BoardMatrix = std::array<std::array<uint8_t, 9>, 9>;
-    /*
-        000222000
-        000020000
-        000010000
-        200010002
-        221131122
-        200010002
-        000010000
-        000020000
-        000222000
-    */
-    BoardMatrix initialState = board.getBoardMatrix();
+    for (int row = 0; row < 9; row++) {
+        for (int col = 0; col < 9; col++) {
+            const uint8_t piece = currentBoard[row][col];
+            const bool isMine = isWhite ? (piece == 1 || piece == 3) : piece == 2;
+            if (!isMine)
+                continue;
 
-    std::vector<std::array<std::string, 2>> newLayer;
-
-    for (int i = 0; i < 9; i++) {
-        for (int j = 0; j < 9; j++) {
-            if (role == "WHITE") {
-                if (initialState[i][j] == 1 || initialState[i][j] == 3) { // or white pawns or king
-                    std::vector<std::array<std::string, 2>> move = generateMoves(initialState, i, j);
-                    newLayer.insert(newLayer.end(), move.begin(), move.end());
-                }
-            } else {
-                if (initialState[i][j] == 2) {
-                    std::vector<std::array<std::string, 2>> move = generateMoves(initialState, i, j);
-                    newLayer.insert(newLayer.end(), move.begin(), move.end());
-                }
-            }
+            const auto pieceMoves = generateMoves(currentBoard, row, col);
+            moves.insert(moves.end(), pieceMoves.begin(), pieceMoves.end());
         }
     }
-    std::cout << "Possible moves number: " << newLayer.size() << std::endl;
-    return newLayer;
+    std::cout << "Possible moves number: " << moves.size() << std::endl;
+    return moves;
 }
 
 Action Agent::chooseMove() {
-    std::vector<std::array<std::string, 2>> mosse = generateTree();
+    std::vector<std::array<std::string, 2>> mosse = generateAllMoves();
 
     // ! seleziona una mossa casuale disponibile
     int mossa = rand() % mosse.size();

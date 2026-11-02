@@ -5,7 +5,7 @@
 
 class Agent : public Player {
 private:
-    std::vector<std::array<std::string, 2>> generateTree();
+    std::vector<std::array<std::string, 2>> generateAllMoves();
 
 public:
     Agent(ServerConnector &gameConnection, std::string role);
