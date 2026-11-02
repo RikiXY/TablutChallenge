@@ -37,17 +37,16 @@ bool isOnBoard(int row, int col) {
     return row >= 0 && row < 9 && col >= 0 && col < 9;
 }
 
-std::vector<std::array<std::string, 2>> generateMoves(const BoardMatrix &board, int row, int col) {
+std::vector<Move> generateMoves(const BoardMatrix &board, int row, int col) {
     constexpr int directions[4][2] = {{0, -1}, {0, 1}, {-1, 0}, {1, 0}}; // left, right, up, down
-    const std::string from = convertToCoord(row, col);
-    std::vector<std::array<std::string, 2>> moves;
+    std::vector<Move> moves;
 
     for (const auto &[dRow, dCol] : directions) {
         int toRow = row + dRow;
         int toCol = col + dCol;
 
-        while (isOnBoard(toRow, toCol) && board[toRow][toCol] == 0 && isLegal(row, col, toRow, toCol)) {
-            moves.push_back({from, convertToCoord(toRow, toCol)});
+        while (isOnBoard(toRow, toCol) && board[toRow][toCol] == Piece::Empty && isLegal(row, col, toRow, toCol)) {
+            moves.push_back({row, col, toRow, toCol});
             toRow += dRow;
             toCol += dCol;
         }
@@ -55,15 +54,15 @@ std::vector<std::array<std::string, 2>> generateMoves(const BoardMatrix &board, 
     return moves;
 }
 
-std::vector<std::array<std::string, 2>> Agent::generateAllMoves() {
-    const BoardMatrix currentBoard = board.getBoardMatrix(); // 0 empty, 1 white, 2 black, 3 king, 4 throne
+std::vector<Move> Agent::generateAllMoves() {
+    const BoardMatrix currentBoard = board.getBoardMatrix();
     const bool isWhite = role == "WHITE";
-    std::vector<std::array<std::string, 2>> moves;
+    std::vector<Move> moves;
 
     for (int row = 0; row < 9; row++) {
         for (int col = 0; col < 9; col++) {
-            const uint8_t piece = currentBoard[row][col];
-            const bool isMine = isWhite ? (piece == 1 || piece == 3) : piece == 2;
+            const Piece piece = currentBoard[row][col];
+            const bool isMine = isWhite ? (piece == Piece::White || piece == Piece::King) : piece == Piece::Black;
             if (!isMine)
                 continue;
 
@@ -76,11 +75,13 @@ std::vector<std::array<std::string, 2>> Agent::generateAllMoves() {
 }
 
 Action Agent::chooseMove() {
-    std::vector<std::array<std::string, 2>> mosse = generateAllMoves();
+    std::vector<Move> mosse = generateAllMoves();
 
     // ! seleziona una mossa casuale disponibile
-    int mossa = rand() % mosse.size();
-    std::cout << "Chosen move: \n\tfrom " << mosse[mossa][0] << " to " << mosse[mossa][1] << std::endl;
+    const Move &mossa = mosse[rand() % mosse.size()];
+    const std::string from = convertToCoord(mossa.fromRow, mossa.fromCol);
+    const std::string to = convertToCoord(mossa.toRow, mossa.toCol);
+    std::cout << "Chosen move: \n\tfrom " << from << " to " << to << std::endl;
 
-    return Action(mosse[mossa][0], mosse[mossa][1], role);
+    return Action(from, to, role);
 }

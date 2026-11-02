@@ -1,5 +1,4 @@
 #include "core/Board.hpp"
-#include "core/Translator.hpp"
 #include <iostream>
 
 void Board::setBoard(BoardMatrix givenBoard) {
@@ -24,19 +23,19 @@ void Board::showState() {
         for (int j = 0; j < 9; j++) {
             char symbol = '?';
             switch (board[i][j]) {
-            case 0:
+            case Piece::Empty:
                 symbol = '.';
                 break;
-            case 1:
+            case Piece::White:
                 symbol = 'W';
                 break;
-            case 2:
+            case Piece::Black:
                 symbol = 'B';
                 break;
-            case 3:
+            case Piece::King:
                 symbol = 'K';
                 break;
-            case 4:
+            case Piece::Throne:
                 symbol = 'T';
                 break;
             }

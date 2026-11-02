@@ -1,5 +1,4 @@
 #include "core/Translator.hpp"
-#include <iostream>
 #include <rapidjson/document.h>
 #include <string_view>
 
@@ -37,15 +36,15 @@ void Translator::update(std::string json) {
         for (int j = 0; j < 9; j++) {
             std::string_view role = jsonBoard[i][j].GetString(); // avrei potuto allocare anche una normale stringa ma dato che GetString() restituisce un puntatore usiamo quello e via
             if (role == "EMPTY")
-                board[i][j] = 0;
+                board[i][j] = Piece::Empty;
             else if (role == "WHITE")
-                board[i][j] = 1;
+                board[i][j] = Piece::White;
             else if (role == "BLACK")
-                board[i][j] = 2;
+                board[i][j] = Piece::Black;
             else if (role == "KING")
-                board[i][j] = 3;
+                board[i][j] = Piece::King;
             else if (role == "THRONE")
-                board[i][j] = 4;
+                board[i][j] = Piece::Throne;
             else
                 throw std::invalid_argument("Anomaly in JSON board detected");
         }
