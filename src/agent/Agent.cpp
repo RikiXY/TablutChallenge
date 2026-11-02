@@ -5,41 +5,9 @@
 Agent::Agent(ServerConnector &gameConnection, std::string role)
     : Player(gameConnection, role) {} // richiama il costruttore della classe madre
 
-std::string convertToCoord(uint8_t row, uint8_t col) {
-    std::string riga = std::to_string(row + 1);
-    std::string colonna;
-    switch (col) {
-    case 0:
-        colonna = "a";
-        break;
-    case 1:
-        colonna = "b";
-        break;
-    case 2:
-        colonna = "c";
-        break;
-    case 3:
-        colonna = "d";
-        break;
-    case 4:
-        colonna = "e";
-        break;
-    case 5:
-        colonna = "f";
-        break;
-    case 6:
-        colonna = "g";
-        break;
-    case 7:
-        colonna = "h";
-        break;
-    case 8:
-        colonna = "i";
-        break;
-    default:
-        break;
-    }
-    return colonna + riga;
+// (row, col) to server notation: column a-i + row 1-9, e.g. (0, 4) -> "e1"
+std::string convertToCoord(int row, int col) {
+    return char('a' + col) + std::to_string(row + 1);
 }
 
 int campOf(int row, int col) {
