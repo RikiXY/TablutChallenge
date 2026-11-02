@@ -8,8 +8,6 @@
 #include <ctime>
 #include "core/Game.hpp"
 
-using namespace std;
-
 // #define NAME "CustomFish"
 
 // cmake --build build -j
@@ -22,12 +20,12 @@ int main(int argc, char *argv[]){
 
     ServerConnector connection(parser.ip, parser.port);
     connection.connectToServer();
-    cout<<"Connected"<<endl;
+    std::cout<<"Connected"<<std::endl;
 
     srand(time(nullptr));
 
     Game game;
-    cout<<"Joining game"<<endl;
+    std::cout<<"Joining game"<<std::endl;
     game.start(connection, parser.name, parser.role, parser.playMode);  // Join game on <connection> with <name> id
     
     connection.endConnection();
