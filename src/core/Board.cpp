@@ -1,20 +1,7 @@
 #include "core/Board.hpp"
 #include <iostream>
 
-void Board::setBoard(BoardMatrix givenBoard) {
-    board = givenBoard;
-}
-
-void Board::showNumericalState() {
-    for (int i = 0; i < 9; i++) {
-        for (int j = 0; j < 9; j++) {
-            std::cout << static_cast<int>(board[i][j]);
-        }
-        std::cout << std::endl;
-    }
-}
-
-void Board::showState() {
+void printBoard(const BoardMatrix &board) {
     std::cout << "\n     a b c d e f g h i\n";
     std::cout << "   +-------------------+\n";
 
@@ -43,8 +30,4 @@ void Board::showState() {
     std::cout << "   +-------------------+\n";
     std::cout << "     a b c d e f g h i\n\n";
     std::cout << "W = White | B = Black | K = King | T = Empty throne | . = Empty\n";
-}
-
-BoardMatrix Board::getBoardMatrix() {
-    return board;
 }

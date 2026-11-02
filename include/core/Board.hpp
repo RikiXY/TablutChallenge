@@ -16,13 +16,4 @@ struct Move {
     int fromRow, fromCol, toRow, toCol;
 };
 
-class Board {
-private:
-    BoardMatrix board{};
-
-public:
-    void setBoard(BoardMatrix givenBoard);
-    void showState();
-    void showNumericalState();
-    BoardMatrix getBoardMatrix();
-};
+void printBoard(const BoardMatrix &board);

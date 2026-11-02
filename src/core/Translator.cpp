@@ -1,5 +1,6 @@
 #include "core/Translator.hpp"
 #include <rapidjson/document.h>
+#include <stdexcept>
 #include <string_view>
 
 /* Fixed JSON:
@@ -19,45 +20,45 @@
 }
 */
 
-void Translator::update(std::string json) {
-
+Position parsePosition(const std::string &json) {
     rapidjson::Document doc;
     doc.Parse(json.c_str());
     if (doc.HasParseError())
         throw std::runtime_error("Invalid JSON");
 
     // ! non controllo la struttura del JSON. Do per scontato che sia ok
-    auto &jsonBoard = doc["board"];
+    const auto &jsonBoard = doc["board"];
+    Position position;
 
-    BoardMatrix board;
-
-    // ? Dovrei ottimizzarlo confrontando stati precedenti e successivi
     for (int i = 0; i < 9; i++) {
         for (int j = 0; j < 9; j++) {
-            std::string_view role = jsonBoard[i][j].GetString(); // avrei potuto allocare anche una normale stringa ma dato che GetString() restituisce un puntatore usiamo quello e via
-            if (role == "EMPTY")
-                board[i][j] = Piece::Empty;
-            else if (role == "WHITE")
-                board[i][j] = Piece::White;
-            else if (role == "BLACK")
-                board[i][j] = Piece::Black;
-            else if (role == "KING")
-                board[i][j] = Piece::King;
-            else if (role == "THRONE") // the server's name for an empty throne
-                board[i][j] = Piece::Empty;
+            const std::string_view piece = jsonBoard[i][j].GetString();
+            if (piece == "EMPTY" || piece == "THRONE") // THRONE is the server's name for an empty throne
+                position.board[i][j] = Piece::Empty;
+            else if (piece == "WHITE")
+                position.board[i][j] = Piece::White;
+            else if (piece == "BLACK")
+                position.board[i][j] = Piece::Black;
+            else if (piece == "KING")
+                position.board[i][j] = Piece::King;
             else
                 throw std::invalid_argument("Anomaly in JSON board detected");
         }
     }
-    transaltedBoard.setBoard(board);
 
-    translatedTurn.setTurn(doc["turn"].GetString());
-}
+    const std::string_view turn = doc["turn"].GetString();
+    if (turn == "WHITE")
+        position.sideToMove = Side::White;
+    else if (turn == "BLACK")
+        position.sideToMove = Side::Black;
+    else if (turn == "WHITEWIN")
+        position.outcome = Outcome::WhiteWins;
+    else if (turn == "BLACKWIN")
+        position.outcome = Outcome::BlackWins;
+    else if (turn == "DRAW")
+        position.outcome = Outcome::Draw;
+    else
+        throw std::invalid_argument("Anomaly in JSON turn detected: " + std::string(turn));
 
-Board Translator::getBoard() {
-    return transaltedBoard;
-}
-
-Turn Translator::getTurn() {
-    return translatedTurn;
+    return position;
 }

@@ -5,5 +5,5 @@
 class Agent : public Player {
 public:
     Agent(ServerConnector &gameConnection, std::string role);
-    Action chooseMove() override;
+    Action chooseMove(const Position &position, const GameHistory &history) override;
 };

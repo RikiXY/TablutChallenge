@@ -6,8 +6,7 @@
 Agent::Agent(ServerConnector &gameConnection, std::string role)
     : Player(gameConnection, role) {} // richiama il costruttore della classe madre
 
-Action Agent::chooseMove() {
-    const Position position{board.getBoardMatrix(), role == "WHITE" ? Side::White : Side::Black};
+Action Agent::chooseMove(const Position &position, const GameHistory &history) {
     std::vector<Move> moves = position.calculateLegalMoves();
     std::cout << "Possible moves number: " << moves.size() << std::endl;
 

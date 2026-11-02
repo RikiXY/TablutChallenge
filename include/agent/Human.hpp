@@ -5,5 +5,5 @@
 class Human : public Player {
 public:
     Human(ServerConnector &gameConnection, std::string role);
-    Action chooseMove() override;
+    Action chooseMove(const Position &position, const GameHistory &history) override;
 };

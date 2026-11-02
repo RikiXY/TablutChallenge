@@ -6,7 +6,7 @@
 Human::Human(ServerConnector &gameConnection, std::string role)
     : Player(gameConnection, role) {} // richiama il costruttore della classe madre
 
-Action Human::chooseMove() {
+Action Human::chooseMove(const Position &, const GameHistory &) {
     std::string from;
     std::string to;
 

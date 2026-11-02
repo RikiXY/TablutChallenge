@@ -4,7 +4,51 @@
 #include "core/Translator.hpp"
 #include <iostream>
 
-void Game::start(ServerConnector &gameConnection, std::string name, std::string role, std::string modality) {
+namespace {
+
+int countPieces(const BoardMatrix &board) {
+    int count = 0;
+    for (const auto &row : board)
+        for (Piece piece : row)
+            if (piece != Piece::Empty)
+                count++;
+    return count;
+}
+
+const char *turnName(const Position &position) {
+    switch (position.outcome) {
+    case Outcome::WhiteWins:
+        return "WHITEWIN";
+    case Outcome::BlackWins:
+        return "BLACKWIN";
+    case Outcome::Draw:
+        return "DRAW";
+    case Outcome::Ongoing:
+        break;
+    }
+    return position.sideToMove == Side::White ? "WHITE" : "BLACK";
+}
+
+} // namespace
+
+void Game::record(const Position &newPosition) {
+    if (started) {
+        const bool captured = countPieces(newPosition.board) < countPieces(position.board);
+        history.push(newPosition, captured);
+    }
+    position = newPosition;
+    started = true;
+}
+
+const Position &Game::current() const {
+    return position;
+}
+
+const GameHistory &Game::pastPositions() const {
+    return history;
+}
+
+void Game::start(ServerConnector &gameConnection, std::string name, std::string role, std::string mode) {
 
     gameConnection.joinGame(name);
     std::cout << "Name sent to server" << std::endl;
@@ -13,52 +57,42 @@ void Game::start(ServerConnector &gameConnection, std::string name, std::string 
               << "==============================" << std::endl
               << std::endl;
 
-    Translator translator;
-    GameState currentGameState;
-
+    const Side playerSide = (role == "WHITE") ? Side::White : Side::Black;
     Human humanPlayer(gameConnection, role);
     Agent agentPlayer(gameConnection, role);
+    Player &player = (mode == "auto") ? static_cast<Player &>(agentPlayer) : static_cast<Player &>(humanPlayer);
 
-    while (1) {
+    while (true) {
         std::cout << "Waiting for server response..." << std::endl;
-        translator.update(gameConnection.receiveJson());
-        currentGameState.update(translator.getBoard(), translator.getTurn());
+        record(parsePosition(gameConnection.receiveJson()));
         std::cout << "State received" << std::endl;
+        printBoard(position.board);
+        std::cout << std::endl
+                  << "Turn: " << turnName(position) << std::endl;
 
-        if (modality == "auto") {
-            agentPlayer.setGameState(currentGameState);
-            if (agentPlayer.isMyTurn()) {
-                std::cout << "My turn" << std::endl;
-                // ! Far partire il timer qui (non usiamo 60s, teniamo un margine)
-                // ! la logica di selezione non è ancora implementata
-                agentPlayer.move(agentPlayer.chooseMove());
-            } else {
-                std::cout << "Opponent's turn" << std::endl;
-                std::cout << std::endl
-                          << "==============================" << std::endl
-                          << std::endl;
-            }
-        } else {
-            humanPlayer.setGameState(currentGameState); // il player riceve sempre subito lo stato aggiornato così può pensare intanto che l'altro giocatore sceglie
-            if (humanPlayer.isMyTurn()) {
-                // ! Far partire il timer qui (non usiamo 60s, teniamo un margine)
-                std::cout << "My turn" << std::endl;
-                humanPlayer.move(humanPlayer.chooseMove());
-            } else
-                std::cout << "Opponent's turn" << std::endl;
-        }
-
-        if (currentGameState.isOver()) {
-            if (currentGameState.winner() == role)
+        if (position.outcome != Outcome::Ongoing) {
+            const Outcome playerWin = (playerSide == Side::White) ? Outcome::WhiteWins : Outcome::BlackWins;
+            if (position.outcome == playerWin)
                 std::cout << std::endl
                           << "YOU ARE THE WINNER" << std::endl;
-            else if (currentGameState.winner() == "DRAW")
+            else if (position.outcome == Outcome::Draw)
                 std::cout << std::endl
                           << "Mh. Better luck next time I guess" << std::endl;
             else
                 std::cout << std::endl
                           << "SHAME ON YOU" << std::endl;
             break;
+        }
+
+        if (position.sideToMove == playerSide) {
+            std::cout << "My turn" << std::endl;
+            // ! Far partire il timer qui (non usiamo 60s, teniamo un margine)
+            player.move(player.chooseMove(position, history));
+        } else {
+            std::cout << "Opponent's turn" << std::endl;
+            std::cout << std::endl
+                      << "==============================" << std::endl
+                      << std::endl;
         }
     }
 }
