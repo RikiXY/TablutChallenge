@@ -3,13 +3,13 @@
 #include "Board.hpp"
 #include "Turn.hpp"
 
-class GameState{
-    private:
+class GameState {
+private:
     Board currentBoard;
     Turn currentTurn;
     bool finished = false;
 
-    public:
+public:
     void update(Board newBoard, Turn newTurn);
     Board getBoard();
     Turn getTurn();

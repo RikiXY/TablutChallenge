@@ -1,16 +1,16 @@
 #pragma once
 
-#include <string>
 #include "core/Board.hpp"
 #include "core/Turn.hpp"
+#include <string>
 
-class Translator{
-    private:
+class Translator {
+private:
     Board transaltedBoard;
     Turn translatedTurn;
 
-    public:
+public:
     void update(std::string json);
-    Board getBoard();  // input json → update current board
-    Turn getTurn();  // input json → update current turn
+    Board getBoard(); // input json → update current board
+    Turn getTurn();   // input json → update current turn
 };

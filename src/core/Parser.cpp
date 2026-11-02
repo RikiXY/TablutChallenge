@@ -2,7 +2,7 @@
 #include <stdexcept>
 #include <string_view>
 
-Parser::Parser(int argc, char *argv[]){
+Parser::Parser(int argc, char *argv[]) {
 
     if (argc < 4)
         throw std::invalid_argument("Usage: player <WHITE|BLACK> <timeout_s> <server_ip> [-n name] [-m auto|manual]");
@@ -21,7 +21,7 @@ Parser::Parser(int argc, char *argv[]){
     name = "CustomFish";
     playMode = "auto";
 
-    for (int i = 4; i < argc; i += 2){
+    for (int i = 4; i < argc; i += 2) {
         std::string_view flag(argv[i]);
         if (i + 1 >= argc)
             throw std::invalid_argument("Missing value for " + std::string(flag));
@@ -29,12 +29,11 @@ Parser::Parser(int argc, char *argv[]){
 
         if (flag == "-n" || flag == "--name")
             name = value;
-        else if (flag == "-m" || flag == "--mode"){
+        else if (flag == "-m" || flag == "--mode") {
             if (value != "auto" && value != "manual")
                 throw std::invalid_argument("Not a valid mode: " + std::string(value));
             playMode = value;
-        }
-        else
+        } else
             throw std::invalid_argument("Unknown option: " + std::string(flag));
     }
 }

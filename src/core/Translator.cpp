@@ -20,7 +20,7 @@
 }
 */
 
-void Translator::update(std::string json){
+void Translator::update(std::string json) {
 
     rapidjson::Document doc;
     doc.Parse(json.c_str());
@@ -28,20 +28,26 @@ void Translator::update(std::string json){
         throw std::runtime_error("Invalid JSON");
 
     // ! non controllo la struttura del JSON. Do per scontato che sia ok
-    auto& jsonBoard = doc["board"];
+    auto &jsonBoard = doc["board"];
 
     BoardMatrix board;
 
     // ? Dovrei ottimizzarlo confrontando stati precedenti e successivi
-    for(int i = 0; i < 9; i++){
-        for(int j = 0; j < 9; j++){
-            std::string_view role = jsonBoard[i][j].GetString();  // avrei potuto allocare anche una normale stringa ma dato che GetString() restituisce un puntatore usiamo quello e via
-            if(role == "EMPTY") board[i][j] = 0;
-            else if (role == "WHITE") board[i][j] = 1;
-            else if (role == "BLACK") board[i][j] = 2;
-            else if (role == "KING") board[i][j] = 3;
-            else if (role == "THRONE") board[i][j] = 4;
-            else throw std::invalid_argument("Anomaly in JSON board detected");
+    for (int i = 0; i < 9; i++) {
+        for (int j = 0; j < 9; j++) {
+            std::string_view role = jsonBoard[i][j].GetString(); // avrei potuto allocare anche una normale stringa ma dato che GetString() restituisce un puntatore usiamo quello e via
+            if (role == "EMPTY")
+                board[i][j] = 0;
+            else if (role == "WHITE")
+                board[i][j] = 1;
+            else if (role == "BLACK")
+                board[i][j] = 2;
+            else if (role == "KING")
+                board[i][j] = 3;
+            else if (role == "THRONE")
+                board[i][j] = 4;
+            else
+                throw std::invalid_argument("Anomaly in JSON board detected");
         }
     }
     transaltedBoard.setBoard(board);
@@ -49,10 +55,10 @@ void Translator::update(std::string json){
     translatedTurn.setTurn(doc["turn"].GetString());
 }
 
-Board Translator::getBoard(){
+Board Translator::getBoard() {
     return transaltedBoard;
 }
 
-Turn Translator::getTurn(){
+Turn Translator::getTurn() {
     return translatedTurn;
 }

@@ -2,14 +2,14 @@
 #include "core/Translator.hpp"
 #include <iostream>
 
-void Turn::setTurn(std::string givenTurn){
+void Turn::setTurn(std::string givenTurn) {
     turn = givenTurn;
 }
 
-void Turn::showState(){
-    std::cout<<turn<<std::endl;
+void Turn::showState() {
+    std::cout << turn << std::endl;
 }
 
-std::string Turn::getString(){
+std::string Turn::getString() {
     return turn;
 }

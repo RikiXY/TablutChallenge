@@ -1,9 +1,9 @@
 #pragma once
 
-#include "connections/ServerConnector.hpp"
 #include "GameState.hpp"
+#include "connections/ServerConnector.hpp"
 
-class Game{
-    public:
-    void start(ServerConnector&, std::string, std::string, std::string);
+class Game {
+public:
+    void start(ServerConnector &, std::string, std::string, std::string);
 };
