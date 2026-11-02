@@ -15,9 +15,7 @@ add_executable(TablutChallenge
     # Core
     src/core/Board.cpp
     src/core/Game.cpp
-    src/core/GameState.cpp
     src/core/Translator.cpp
-    src/core/Turn.cpp
     src/core/Action.cpp
     src/core/Parser.cpp
     src/core/Rules.cpp
