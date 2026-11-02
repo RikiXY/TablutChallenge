@@ -5,10 +5,10 @@
 Agent::Agent(ServerConnector& gameConnection, std::string role) 
     : Player(gameConnection, role) {}  // richiama il costruttore della classe madre
 
-std::string convertToCoord(uint8_t X, uint8_t Y){
-    std::string riga = std::to_string(X+1);
+std::string convertToCoord(uint8_t row, uint8_t col){
+    std::string riga = std::to_string(row+1);
     std::string colonna;
-    switch (Y) {
+    switch (col) {
     case 0:
         colonna = "a"; break;
     case 1:
@@ -33,38 +33,25 @@ std::string convertToCoord(uint8_t X, uint8_t Y){
     return colonna + riga;
 }
 
-bool isIllegal(uint8_t currentX, uint8_t currentY, uint8_t newX, uint8_t newY){
-    if(newX == 4 && newY == 4)
-        return true;
+int campOf(int row, int col){
+    if ((row == 0 || row == 8) && col >= 3 && col <= 5) return row == 0 ? 0 : 1;
+    if ((col == 0 || col == 8) && row >= 3 && row <= 5) return col == 0 ? 2 : 3;
+    if (row == 1 && col == 4) return 0;
+    if (row == 7 && col == 4) return 1;
+    if (row == 4 && col == 1) return 2;
+    if (row == 4 && col == 7) return 3;
+    return -1;
+}
 
-    if((currentX == 0 && currentY == 4) ||
-        (currentX == 4 && currentY == 0) ||
-        (currentX == 4 && currentY == 8) ||
-        (currentX == 8 && currentY == 4)){
-            return false;
-        }
-    switch(newX){
-        case 0:
-            return (newY == 3 || newY == 5) ? true : false; break;
-        case 1:
-            return (newY == 4) ? true : false; break;
-        case 3:
-            return (newY == 0 || newY == 8) ? true : false; break;
-        case 4:
-            return (newY == 1 || newY == 7) ? true : false; break;
-        case 5:
-            return (newY == 0 || newY == 8) ? true : false; break;
-        case 7:
-            return (newY == 4) ? true : false; break;
-        case 8:
-            return (newY == 3 || newY == 5) ? true : false; break;
-        default:
-            return false; break;
-    }
+bool isLegal(int fromRow, int fromCol, int toRow, int toCol){
+    if (toRow == 4 && toCol == 4)  // Throne, not a legal target
+        return false;
+    int targetCamp = campOf(toRow, toCol);
+    return targetCamp == -1 || targetCamp == campOf(fromRow, fromCol);  // The pawn can move to a camp only if it is already in that same camp
 }
 
 // TODO improve this generation pls
-std::vector<std::array<std::string, 2>> generateMoves(BoardMatrix initialState, uint8_t X, uint8_t Y){
+std::vector<std::array<std::string, 2>> generateMoves(BoardMatrix initialState, uint8_t row, uint8_t col){
     
     std::vector<std::array<std::string, 2>> allStatesForOnePawn;
     std::array<std::string, 2> newState;
@@ -78,18 +65,18 @@ std::vector<std::array<std::string, 2>> generateMoves(BoardMatrix initialState, 
 
     // ! idk, ho idea che quel break skippi delle combinazioni possibili
     for (auto i : directions){  // per ogni vettore in directions 
-        uint8_t newX = X + i[0];  // il primo valore è i = [0, -1], quindi newX = X + (-1). uint8_t 0-1=255
-        uint8_t newY = Y + i[1];
-        while(newX >= 0 && newX < 9 && newY >= 0 && newY < 9 && initialState[newX][newY] == 0){
-            if (isIllegal(X, Y, newX, newY))
+        uint8_t toRow = row + i[0];  // il primo valore è i = [0, -1], quindi toRow = row + (-1). uint8_t 0-1=255
+        uint8_t toCol = col + i[1];
+        while(toRow >= 0 && toRow < 9 && toCol >= 0 && toCol < 9 && initialState[toRow][toCol] == 0){
+            if (!isLegal(row, col, toRow, toCol))
                 break;
 
-            newState[0] = convertToCoord(X, Y);
-            newState[1] = convertToCoord(newX, newY);
+            newState[0] = convertToCoord(row, col);
+            newState[1] = convertToCoord(toRow, toCol);
             allStatesForOnePawn.push_back(newState);
 
-            newX += i[0];
-            newY += i[1];
+            toRow += i[0];
+            toCol += i[1];
         }
     }
     return allStatesForOnePawn;
