@@ -1,15 +1,16 @@
 #pragma once
 
 #include <array>
+#include <cstdint>
 #include <string>
 
 using BoardMatrix = std::array<std::array<uint8_t, 9>, 9>;
 
-class Board{
-    private:
-    BoardMatrix board {};  // con {} inizializzo tutto a 0
-    
-    public:
+class Board {
+private:
+    BoardMatrix board{}; // con {} inizializzo tutto a 0
+
+public:
     void setBoard(BoardMatrix givenBoard);
     void showState();
     void showNumericalState();

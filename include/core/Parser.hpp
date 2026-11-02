@@ -1,12 +1,13 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 
-class Parser{
-    private:
+class Parser {
+private:
     // potrei mettere i parametri come privati ma al momento non c'è bisogno
 
-    public:
+public:
     std::string role;
     uint16_t port;
     int timeout;
