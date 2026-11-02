@@ -35,6 +35,11 @@ target_include_directories(TablutChallenge PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
+# Third-party headers with warnings hidden
+target_include_directories(TablutChallenge SYSTEM PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party
+)
+
 # Compiler warnings
 target_compile_options(TablutChallenge PRIVATE
     -Wall
