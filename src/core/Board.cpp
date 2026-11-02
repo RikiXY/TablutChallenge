@@ -24,7 +24,7 @@ void Board::showState() {
             char symbol = '?';
             switch (board[i][j]) {
             case Piece::Empty:
-                symbol = '.';
+                symbol = (i == 4 && j == 4) ? 'T' : '.';
                 break;
             case Piece::White:
                 symbol = 'W';
@@ -35,9 +35,6 @@ void Board::showState() {
             case Piece::King:
                 symbol = 'K';
                 break;
-            case Piece::Throne:
-                symbol = 'T';
-                break;
             }
             std::cout << symbol << ' ';
         }
@@ -45,7 +42,7 @@ void Board::showState() {
     }
     std::cout << "   +-------------------+\n";
     std::cout << "     a b c d e f g h i\n\n";
-    std::cout << "W = White | B = Black | K = King | . = Empty\n";
+    std::cout << "W = White | B = Black | K = King | T = Empty throne | . = Empty\n";
 }
 
 BoardMatrix Board::getBoardMatrix() {

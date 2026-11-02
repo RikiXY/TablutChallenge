@@ -43,8 +43,8 @@ void Translator::update(std::string json) {
                 board[i][j] = Piece::Black;
             else if (role == "KING")
                 board[i][j] = Piece::King;
-            else if (role == "THRONE")
-                board[i][j] = Piece::Throne;
+            else if (role == "THRONE") // the server's name for an empty throne
+                board[i][j] = Piece::Empty;
             else
                 throw std::invalid_argument("Anomaly in JSON board detected");
         }

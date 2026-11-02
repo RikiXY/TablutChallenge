@@ -20,6 +20,7 @@ add_executable(TablutChallenge
     src/core/Turn.cpp
     src/core/Action.cpp
     src/core/Parser.cpp
+    src/core/Rules.cpp
     
     # Connections
     src/connections/ServerConnector.cpp
