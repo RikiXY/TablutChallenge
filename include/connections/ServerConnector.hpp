@@ -1,22 +1,21 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
-#include <unistd.h>
 
 class ServerConnector {
 private:
-    std::string address;
-    uint16_t port;
-    int clientSocket;
-    void sendAllBytes(void *, size_t, int);
-    void receiveAllBytes(void *, size_t, int);
+    int clientSocket = -1;
+    void sendAllBytes(const void *buffer, size_t size);
+    void receiveAllBytes(void *buffer, size_t size);
 
 public:
-    ServerConnector(std::string address, uint16_t port);
-    void connectToServer();
-    void joinGame(std::string name);
-    std::string receiveJson();
-    void sendAction(std::string);
-    void endConnection();
+    ServerConnector(const std::string &address, uint16_t port);
+    ~ServerConnector();
+    ServerConnector(const ServerConnector &) = delete;
+    ServerConnector &operator=(const ServerConnector &) = delete;
+
+    void send(const std::string &message);
+    std::string receive();
 };

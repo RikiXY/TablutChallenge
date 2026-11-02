@@ -1,5 +1,7 @@
 #include "core/Translator.hpp"
 #include <rapidjson/document.h>
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
 #include <stdexcept>
 #include <string_view>
 
@@ -61,4 +63,28 @@ Position parsePosition(const std::string &json) {
         throw std::invalid_argument("Anomaly in JSON turn detected: " + std::string(turn));
 
     return position;
+}
+
+std::string moveToJson(const Move &move, Side side) {
+    const std::string from = convertToCoord(move.fromRow, move.fromCol);
+    const std::string to = convertToCoord(move.toRow, move.toCol);
+
+    rapidjson::StringBuffer buffer;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+    writer.StartObject();
+    writer.Key("from");
+    writer.String(from.c_str());
+    writer.Key("to");
+    writer.String(to.c_str());
+    writer.Key("turn");
+    writer.String(side == Side::White ? "WHITE" : "BLACK");
+    writer.EndObject();
+    return buffer.GetString();
+}
+
+std::string nameToJson(const std::string &name) {
+    rapidjson::StringBuffer buffer;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+    writer.String(name.c_str(), static_cast<rapidjson::SizeType>(name.size()));
+    return buffer.GetString();
 }

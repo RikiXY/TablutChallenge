@@ -1,8 +1,8 @@
 #pragma once
 
+#include "config/Config.hpp"
 #include "connections/ServerConnector.hpp"
 #include "core/Rules.hpp"
-#include <string>
 
 class Game {
 private:
@@ -15,5 +15,5 @@ public:
     const Position &current() const;
     const GameHistory &pastPositions() const;
 
-    void start(ServerConnector &gameConnection, std::string name, std::string role, std::string mode);
+    void start(ServerConnector &connection, const Config &config);
 };

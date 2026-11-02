@@ -48,23 +48,23 @@ const GameHistory &Game::pastPositions() const {
     return history;
 }
 
-void Game::start(ServerConnector &gameConnection, std::string name, std::string role, std::string mode) {
+void Game::start(ServerConnector &connection, const Config &config) {
 
-    gameConnection.joinGame(name);
+    connection.send(nameToJson(config.name));
     std::cout << "Name sent to server" << std::endl;
     std::cout << "The server will respond once the other player has connected" << std::endl;
     std::cout << std::endl
               << "==============================" << std::endl
               << std::endl;
 
-    const Side playerSide = (role == "WHITE") ? Side::White : Side::Black;
-    Human humanPlayer(gameConnection, role);
-    Agent agentPlayer(gameConnection, role);
-    Player &player = (mode == "auto") ? static_cast<Player &>(agentPlayer) : static_cast<Player &>(humanPlayer);
+    const Side playerSide = config.side;
+    Human humanPlayer;
+    Agent agentPlayer;
+    Player &player = (config.mode == Mode::Auto) ? static_cast<Player &>(agentPlayer) : static_cast<Player &>(humanPlayer);
 
     while (true) {
         std::cout << "Waiting for server response..." << std::endl;
-        record(parsePosition(gameConnection.receiveJson()));
+        record(parsePosition(connection.receive()));
         std::cout << "State received" << std::endl;
         printBoard(position.board);
         std::cout << std::endl
@@ -87,7 +87,9 @@ void Game::start(ServerConnector &gameConnection, std::string name, std::string 
         if (position.sideToMove == playerSide) {
             std::cout << "My turn" << std::endl;
             // ! Far partire il timer qui (non usiamo 60s, teniamo un margine)
-            player.move(player.chooseMove(position, history));
+            const Move move = player.chooseMove(position, history);
+            connection.send(moveToJson(move, playerSide));
+            std::cout << "Move sent" << std::endl;
         } else {
             std::cout << "Opponent's turn" << std::endl;
             std::cout << std::endl

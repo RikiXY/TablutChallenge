@@ -16,15 +16,15 @@ add_executable(TablutChallenge
     src/core/Board.cpp
     src/core/Game.cpp
     src/core/Translator.cpp
-    src/core/Action.cpp
-    src/core/Parser.cpp
     src/core/Rules.cpp
+
+    # Config
+    src/config/Config.cpp
     
     # Connections
     src/connections/ServerConnector.cpp
     
     # Agents
-    src/agent/Player.cpp
     src/agent/Agent.cpp
     src/agent/Human.cpp
 )
