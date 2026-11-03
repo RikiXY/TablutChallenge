@@ -7,6 +7,9 @@ install_manifest.txt
 compile_commands.json
 /build/
 
+# Game logs
+/logs/
+
 # VS Code local settings (optional)
 /.vscode/
 
