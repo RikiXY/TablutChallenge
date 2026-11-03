@@ -35,4 +35,14 @@ uint64_t perft(const Position &position, int depth);
 
 std::string convertToCoord(int row, int col);
 
+constexpr int directions[4][2] = {{0, -1}, {0, 1}, {-1, 0}, {1, 0}}; // left, right, up, down
+
+constexpr bool isOnBoard(int row, int col) {
+    return row >= 0 && row < 9 && col >= 0 && col < 9;
+}
+
+constexpr bool isThrone(int row, int col) {
+    return row == 4 && col == 4;
+}
+
 bool isCamp(int row, int col);

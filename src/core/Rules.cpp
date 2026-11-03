@@ -3,16 +3,6 @@
 
 namespace {
 
-constexpr int directions[4][2] = {{0, -1}, {0, 1}, {-1, 0}, {1, 0}}; // left, right, up, down
-
-bool isOnBoard(int row, int col) {
-    return row >= 0 && row < 9 && col >= 0 && col < 9;
-}
-
-bool isThrone(int row, int col) {
-    return row == 4 && col == 4;
-}
-
 bool isEdge(int row, int col) {
     return row == 0 || row == 8 || col == 0 || col == 8;
 }
