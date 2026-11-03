@@ -5,8 +5,6 @@
 #include "config/Config.hpp"
 #include "connections/ServerConnector.hpp"
 #include "core/Game.hpp"
-#include <cstdlib>
-#include <ctime>
 #include <exception>
 #include <iostream>
 
@@ -20,8 +18,6 @@ int main(int argc, char *argv[]) {
 
         ServerConnector connection(config.ip, config.port);
         std::cout << "Connected" << std::endl;
-
-        srand(time(nullptr));
 
         Game game;
         std::cout << "Joining game" << std::endl;

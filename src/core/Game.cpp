@@ -59,7 +59,7 @@ void Game::start(ServerConnector &connection, const Config &config) {
 
     const Side playerSide = config.side;
     Human humanPlayer;
-    Agent agentPlayer;
+    Agent agentPlayer(config.timeout);
     Player &player = (config.mode == Mode::Auto) ? static_cast<Player &>(agentPlayer) : static_cast<Player &>(humanPlayer);
 
     while (true) {

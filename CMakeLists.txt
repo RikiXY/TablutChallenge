@@ -18,6 +18,10 @@ add_executable(TablutChallenge
     src/core/Translator.cpp
     src/core/Rules.cpp
 
+    # Engine
+    src/engine/Evaluation.cpp
+    src/engine/Search.cpp
+
     # Config
     src/config/Config.cpp
     

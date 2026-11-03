@@ -25,7 +25,7 @@ struct Position {
 };
 
 struct GameHistory {
-    int repeatedAllowed = 0;
+    int allowedRepetitions = 0;
     std::vector<Position> sinceLastCapture;
 
     bool push(const Position &after, bool captured);

@@ -178,7 +178,7 @@ bool GameHistory::push(const Position &after, bool captured) {
                 seen++;
 
     sinceLastCapture.push_back(after);
-    return seen > repeatedAllowed;
+    return seen > allowedRepetitions;
 }
 
 uint64_t perft(const Position &position, int depth) {
