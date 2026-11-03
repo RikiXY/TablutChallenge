@@ -33,9 +33,13 @@ int campOf(int row, int col) {
     return -1;
 }
 
+} // namespace
+
 bool isCamp(int row, int col) {
     return campOf(row, col) != -1;
 }
+
+namespace {
 
 bool isCampCenter(int row, int col) {
     return (row == 0 && col == 4) || (row == 8 && col == 4) || (row == 4 && col == 0) || (row == 4 && col == 8);

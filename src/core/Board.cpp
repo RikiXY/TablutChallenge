@@ -1,4 +1,5 @@
 #include "core/Board.hpp"
+#include "core/Rules.hpp"
 #include <iostream>
 
 void printBoard(const BoardMatrix &board) {
@@ -8,19 +9,24 @@ void printBoard(const BoardMatrix &board) {
     for (int i = 0; i < 9; i++) {
         std::cout << " " << i + 1 << " | ";
         for (int j = 0; j < 9; j++) {
-            char symbol = '?';
+            const char *symbol = "?";
             switch (board[i][j]) {
             case Piece::Empty:
-                symbol = (i == 4 && j == 4) ? 'T' : '.';
+                if (i == 4 && j == 4)
+                    symbol = "T";
+                else if (isCamp(i, j))
+                    symbol = "Δ";
+                else
+                    symbol = ".";
                 break;
             case Piece::White:
-                symbol = 'W';
+                symbol = "W";
                 break;
             case Piece::Black:
-                symbol = 'B';
+                symbol = "B";
                 break;
             case Piece::King:
-                symbol = 'K';
+                symbol = "K";
                 break;
             }
             std::cout << symbol << ' ';
@@ -29,5 +35,5 @@ void printBoard(const BoardMatrix &board) {
     }
     std::cout << "   +-------------------+\n";
     std::cout << "     a b c d e f g h i\n\n";
-    std::cout << "W = White | B = Black | K = King | T = Empty throne | . = Empty\n";
+    std::cout << "W = White | B = Black | K = King | T = Empty throne | Δ = Empty camp | . = Empty\n";
 }

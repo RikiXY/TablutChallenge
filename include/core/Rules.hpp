@@ -34,3 +34,5 @@ struct GameHistory {
 uint64_t perft(const Position &position, int depth);
 
 std::string convertToCoord(int row, int col);
+
+bool isCamp(int row, int col);
