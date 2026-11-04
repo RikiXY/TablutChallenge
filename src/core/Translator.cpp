@@ -1,4 +1,5 @@
 #include "core/Translator.hpp"
+#include <cctype>
 #include <rapidjson/document.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
@@ -87,4 +88,26 @@ std::string nameToJson(const std::string &name) {
     rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
     writer.String(name.c_str(), static_cast<rapidjson::SizeType>(name.size()));
     return buffer.GetString();
+}
+
+std::string convertToCoord(int row, int col) {
+    return char('a' + col) + std::to_string(row + 1);
+}
+
+bool parseSquare(const std::string &text, int &row, int &col) {
+    if (text.size() != 2)
+        return false;
+    col = std::tolower(static_cast<unsigned char>(text[0])) - 'a';
+    row = text[1] - '1';
+    return isOnBoard(row, col);
+}
+
+std::string moveToText(const Move &move) {
+    return convertToCoord(move.fromRow, move.fromCol) + convertToCoord(move.toRow, move.toCol);
+}
+
+bool parseMove(const std::string &text, Move &move) {
+    return text.size() == 4 &&
+           parseSquare(text.substr(0, 2), move.fromRow, move.fromCol) &&
+           parseSquare(text.substr(2), move.toRow, move.toCol);
 }

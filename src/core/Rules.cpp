@@ -189,7 +189,3 @@ uint64_t perft(const Position &position, int depth) {
     }
     return count;
 }
-
-std::string convertToCoord(int row, int col) {
-    return char('a' + col) + std::to_string(row + 1);
-}

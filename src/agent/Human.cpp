@@ -1,21 +1,9 @@
 #include "agent/Human.hpp"
+#include "core/Translator.hpp"
 
-#include <cctype>
 #include <iostream>
 #include <stdexcept>
 #include <string>
-
-namespace {
-
-bool parseSquare(const std::string &text, int &row, int &col) {
-    if (text.size() != 2)
-        return false;
-    col = std::tolower(static_cast<unsigned char>(text[0])) - 'a';
-    row = text[1] - '1';
-    return row >= 0 && row < 9 && col >= 0 && col < 9;
-}
-
-} // namespace
 
 Move Human::chooseMove(const Position &, const GameHistory &) {
     // ! non è presente validazione delle mosse perché il giocatore umano deve poter sbagliare

@@ -1,4 +1,5 @@
 #include "agent/Agent.hpp"
+#include "core/Translator.hpp"
 #include "engine/Search.hpp"
 #include <algorithm>
 #include <chrono>
