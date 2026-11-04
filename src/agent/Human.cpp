@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <string>
 
-Move Human::chooseMove(const Position &, const GameHistory &) {
+Move Human::chooseMove(const Position &, const GameHistory &, std::chrono::steady_clock::time_point) {
     // ! non è presente validazione delle mosse perché il giocatore umano deve poter sbagliare
     Move move{};
     while (true) {

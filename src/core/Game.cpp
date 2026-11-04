@@ -2,7 +2,9 @@
 #include "agent/Agent.hpp"
 #include "agent/Human.hpp"
 #include "core/Translator.hpp"
+#include <chrono>
 #include <iostream>
+#include <string>
 
 namespace {
 
@@ -49,7 +51,6 @@ const GameHistory &Game::pastPositions() const {
 }
 
 void Game::start(ServerConnector &connection, const Config &config) {
-
     connection.send(nameToJson(config.name));
     std::cout << "Name sent to server" << std::endl;
     std::cout << "The server will respond once the other player has connected" << std::endl;
@@ -64,7 +65,9 @@ void Game::start(ServerConnector &connection, const Config &config) {
 
     while (true) {
         std::cout << "Waiting for server response..." << std::endl;
-        record(parsePosition(connection.receive()));
+        const std::string message = connection.receive();
+        const auto receivedAt = std::chrono::steady_clock::now();
+        record(parsePosition(message));
         std::cout << "State received" << std::endl;
         printBoard(position.board);
         std::cout << std::endl
@@ -86,8 +89,14 @@ void Game::start(ServerConnector &connection, const Config &config) {
 
         if (position.sideToMove == playerSide) {
             std::cout << "My turn" << std::endl;
-            // ! Far partire il timer qui (non usiamo 60s, teniamo un margine)
-            const Move move = player.chooseMove(position, history);
+            Move move{};
+            try {
+                move = player.chooseMove(position, history, receivedAt);
+            } catch (const NoLegalMoves &) {
+                std::cout << std::endl
+                          << "No legal moves: the game is lost" << std::endl;
+                break;
+            }
             connection.send(moveToJson(move, playerSide));
             std::cout << "Move sent" << std::endl;
         } else {

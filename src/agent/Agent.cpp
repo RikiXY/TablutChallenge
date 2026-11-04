@@ -4,17 +4,18 @@
 #include <algorithm>
 #include <chrono>
 #include <iostream>
-#include <stdexcept>
 
 Agent::Agent(int timeoutSeconds) : timeoutSeconds(timeoutSeconds) {}
 
-Move Agent::chooseMove(const Position &position, const GameHistory &history) {
+Move Agent::chooseMove(const Position &position, const GameHistory &history, std::chrono::steady_clock::time_point startingTime) {
     if (position.calculateLegalMoves().empty())
-        throw std::runtime_error("No legal moves: the game is lost");
+        throw NoLegalMoves{};
 
-    constexpr int safetyMarginSeconds = 3;
-    const auto thinkingTime = std::chrono::seconds(std::max(timeoutSeconds - safetyMarginSeconds, 1));
-    const SearchResult result = search(position, history, std::chrono::steady_clock::now() + thinkingTime);
+    // The search budget is the timeout minus a reserve of 3% of it for safety, kept between 350 ms and 2 s
+    const int timeoutMs = timeoutSeconds * 1000;
+    const int reserveMs = std::clamp(timeoutSeconds * 30, 350, 2000);
+    const auto budget = std::chrono::milliseconds(std::max(timeoutMs - reserveMs, 50));
+    const SearchResult result = search(position, history, startingTime + budget);
 
     const Move &move = result.bestMove;
     std::cout << "Chosen move: \n\tfrom " << convertToCoord(move.fromRow, move.fromCol)
