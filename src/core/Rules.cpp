@@ -3,16 +3,6 @@
 
 namespace { // Functions declared here are only accessible within this file
 
-constexpr int directions[4][2] = {{0, -1}, {0, 1}, {-1, 0}, {1, 0}}; // left, right, up, down
-
-bool isOnBoard(int row, int col) {
-    return row >= 0 && row < 9 && col >= 0 && col < 9;
-}
-
-bool isThrone(int row, int col) {
-    return row == 4 && col == 4;
-}
-
 bool isEdge(int row, int col) {
     return row == 0 || row == 8 || col == 0 || col == 8;
 }
@@ -200,8 +190,4 @@ uint64_t perft(const Position &position, int depth) {
             count += perft(next, depth - 1);
     }
     return count;
-}
-
-std::string convertToCoord(int row, int col) {
-    return char('a' + col) + std::to_string(row + 1);
 }

@@ -1,6 +1,6 @@
 #include "agent/Human.hpp"
+#include "core/Translator.hpp"
 
-#include <cctype>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -17,7 +17,7 @@ bool parseSquare(const std::string &text, int &row, int &col) {
 
 } // namespace
 
-Move Human::chooseMove(const Position &, const GameHistory &) {
+Move Human::chooseMove(const Position &, const GameHistory &, std::chrono::steady_clock::time_point) {
     // ! Validate coordinate format only, allowing the human player to make illegal moves
     Move move{};
     while (true) {

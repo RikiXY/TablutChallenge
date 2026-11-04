@@ -7,11 +7,10 @@ project(TablutChallenge LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Executable
-add_executable(TablutChallenge
-    main.cpp
-
+# Adds everything as a library, shared by the player and the arena
+add_library(tablut STATIC
     # Core
     src/core/Board.cpp
     src/core/Game.cpp
@@ -34,21 +33,28 @@ add_executable(TablutChallenge
 )
 
 # Header files
-target_include_directories(TablutChallenge PRIVATE
+target_include_directories(tablut PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
 # Third-party headers with warnings hidden
-target_include_directories(TablutChallenge SYSTEM PRIVATE
+target_include_directories(tablut SYSTEM PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party
 )
 
 # Compiler warnings
-target_compile_options(TablutChallenge PRIVATE
+target_compile_options(tablut PUBLIC
     -Wall
     -Wextra
     -Wpedantic
 )
 
-
+# Tournament player
+add_executable(TablutChallenge main.cpp)
+target_link_libraries(TablutChallenge PRIVATE tablut)
 set_target_properties(TablutChallenge PROPERTIES OUTPUT_NAME player)
+
+# Self-play arena
+find_package(Threads REQUIRED)
+add_executable(arena tools/Arena.cpp)
+target_link_libraries(arena PRIVATE tablut Threads::Threads)
