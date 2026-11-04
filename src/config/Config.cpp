@@ -16,7 +16,7 @@ Config parseArguments(int argc, char *argv[]) {
     else
         throw std::invalid_argument("Not a valid role: " + std::string(role));
 
-    config.port = (config.side == Side::White) ? 5800 : 5801; // Ports defined in TablutCompetition/Tablut/src/.../util/Configuration.java
+    config.port = config.side == Side::White ? 5800 : 5801; // Ports defined in TablutCompetition/Tablut/src/.../util/Configuration.java
     config.timeout = std::stoi(argv[2]);
     config.ip = argv[3];
 

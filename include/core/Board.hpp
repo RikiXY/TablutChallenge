@@ -15,7 +15,7 @@ using BoardMatrix = std::array<std::array<Piece, 9>, 9>;
 
 struct Move {
     int fromRow, fromCol, toRow, toCol;
-    bool operator==(const Move &) const = default;
+    bool operator==(const Move &) const = default; // Automatically compare all members for equality
 };
 
 void printBoard(const BoardMatrix &board);

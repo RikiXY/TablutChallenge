@@ -4,7 +4,7 @@
 #include "core/Translator.hpp"
 #include <iostream>
 
-namespace {
+namespace { // Functions declared here are only accessible within this file
 
 int countPieces(const BoardMatrix &board) {
     int count = 0;
@@ -86,7 +86,7 @@ void Game::start(ServerConnector &connection, const Config &config) {
 
         if (position.sideToMove == playerSide) {
             std::cout << "My turn" << std::endl;
-            // ! Far partire il timer qui (non usiamo 60s, teniamo un margine)
+            // TODO Implement timer for human players as well
             const Move move = player.chooseMove(position, history);
             connection.send(moveToJson(move, playerSide));
             std::cout << "Move sent" << std::endl;

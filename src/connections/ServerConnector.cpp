@@ -1,21 +1,23 @@
 #include "connections/ServerConnector.hpp"
-
-#include <arpa/inet.h> // necessaria per instaurare la connessione (i.e. serveAddress , connect(), recv(), ...)
+#include <arpa/inet.h>   // IP address conversion and network byte-order utilities
+#include <sys/socket.h>
 #include <cerrno>
 #include <stdexcept>
-#include <sys/socket.h> // necessaria per definire il socket
 #include <system_error>
 #include <unistd.h>
 
 ServerConnector::ServerConnector(const std::string &address, uint16_t port) {
-    sockaddr_in serverAddress{};
+    sockaddr_in serverAddress{}; // Zero-initialize all structure members
     serverAddress.sin_family = AF_INET;
-    serverAddress.sin_port = htons(port);
+    serverAddress.sin_port = htons(port); // Convert the port to network byte order (big-endian)
 
-    if (inet_pton(AF_INET, address.c_str(), &serverAddress.sin_addr) != 1)
+    if (inet_pton(AF_INET, address.c_str(), &serverAddress.sin_addr) != 1) // Convert the IPv4 address from text to binary (network byte order)
         throw std::invalid_argument("Not a valid IPv4 address: " + address);
 
-    clientSocket = socket(AF_INET, SOCK_STREAM, 0);
+    clientSocket = socket(AF_INET, SOCK_STREAM, 0); // AF_INET: IPv4 address family
+                                                    // 0: Automatically select the default protocol (TCP)
+                                                    // SOCK_STREAM: Connection-oriented byte stream
+
     if (clientSocket == -1)
         throw std::system_error(errno, std::system_category(), "Socket creation failed");
 
@@ -63,7 +65,7 @@ std::string ServerConnector::receive() {
     receiveAllBytes(&size, sizeof(size));
     size = ntohl(size);
 
-    constexpr uint32_t maxSize = 1 << 20;
+    constexpr uint32_t maxSize = 1 << 20; // 2^20 bytes = 1 MiB
     if (size > maxSize)
         throw std::runtime_error("Message too large: " + std::to_string(size) + " bytes");
 

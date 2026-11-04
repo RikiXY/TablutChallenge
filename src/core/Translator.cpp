@@ -28,7 +28,7 @@ Position parsePosition(const std::string &json) {
     if (doc.HasParseError())
         throw std::runtime_error("Invalid JSON");
 
-    // ! non controllo la struttura del JSON. Do per scontato che sia ok
+    // ! JSON structure is not validated. Assumed to be valid
     const auto &jsonBoard = doc["board"];
     Position position;
 

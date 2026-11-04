@@ -18,7 +18,7 @@ bool parseSquare(const std::string &text, int &row, int &col) {
 } // namespace
 
 Move Human::chooseMove(const Position &, const GameHistory &) {
-    // ! non è presente validazione delle mosse perché il giocatore umano deve poter sbagliare
+    // ! Validate coordinate format only, allowing the human player to make illegal moves
     Move move{};
     while (true) {
         std::string from;
@@ -27,8 +27,6 @@ Move Human::chooseMove(const Position &, const GameHistory &) {
         std::cin >> from;
         std::cout << "Enter ending position: ";
         std::cin >> to;
-        if (!std::cin)
-            throw std::runtime_error("Input closed");
 
         if (parseSquare(from, move.fromRow, move.fromCol) && parseSquare(to, move.toRow, move.toCol))
             return move;
