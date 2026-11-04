@@ -2,18 +2,19 @@
 #include <cstdlib>
 
 const Weights defaultWeights = {
-    90,   // WhitePawns
-    -60,  // BlackPawns
-    150,  // KingOpenRays
+    85,   // WhitePawns
+    -65,  // BlackPawns
+    82,   // KingOpenRays
     8000, // EscapeWhiteToMove
     4000, // DoubleEscapeBlackToMove
-    -60,  // BlackNextToKing
-    -30,  // CampOrThroneNextToKing
-    10,   // KingDistanceFromThrone
-    -40,  // BlackCornerGuards
-    8,    // KingMobility
-    100,  // KingTwoStep
+    -17,  // BlackNextToKing
+    16,   // CampOrThroneNextToKing
+    5,    // KingDistanceFromThrone
+    -25,  // BlackCornerGuards
+    13,   // KingMobility
+    20,   // KingTwoStep
     10,   // WhiteNextToKing
+    80,   // Constant
 };
 
 namespace {
@@ -57,6 +58,7 @@ int openRays(const BoardMatrix &board, int row, int col) {
 
 Features computeFeatures(const Position &position) {
     Features features{};
+    features[Constant] = 1;
     int kingRow = -1;
     int kingCol = -1;
 

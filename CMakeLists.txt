@@ -58,3 +58,7 @@ set_target_properties(TablutChallenge PROPERTIES OUTPUT_NAME player)
 find_package(Threads REQUIRED)
 add_executable(arena tools/Arena.cpp)
 target_link_libraries(arena PRIVATE tablut Threads::Threads)
+
+# Evaluation weight fitting
+add_executable(texel tools/Texel.cpp)
+target_link_libraries(texel PRIVATE tablut)

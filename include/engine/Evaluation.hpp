@@ -20,6 +20,7 @@ enum Feature {
     KingMobility,            // squares the king can move to
     KingTwoStep,             // king moves after which the king would have an open line
     WhiteNextToKing,         // white pawns on the king's 4 neighbouring squares
+    Constant,                // always 1: the structural advantage of one colour, which matters when comparing a score with a draw (0)
     FeatureCount
 };
 

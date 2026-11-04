@@ -34,5 +34,12 @@ cp build/player build/player-base # version B, before the change
 ./build/arena -a build/player -b build/player-base -ms 100 -c 8 -games logs/games.txt
 ```
 Options: `-ms` time per move, `-c` games at a time, `-pairs` maximum pairs (1000), `-plies` random opening moves (6),
-`-seed` (1), `-elo0`/`-elo1` the SPRT hypotheses (0 and 10 Elo), `-games` appends every game as `WHITE_SCORE FAILED MOVES...`.
+`-seed` (1), `-elo0`/`-elo1` the SPRT hypotheses (0 and 10 Elo), `-games` appends every game as `WHITE_SCORE REACHED_MAX_PLIES MOVES...`.
 An engine can be any command that answers `<command> think <ms> <moves...>` with `bestmove e3d3 ...`.
+
+## Texel tuning
+Fits the evaluation weights to the results of arena games:
+```sh
+./build/arena -a build/player -b build/player -ms 50 -c 8 -pairs 5000 -elo0 0 -elo1 0 -games logs/games.txt
+./build/texel logs/games.txt 3000
+```

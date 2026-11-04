@@ -24,7 +24,7 @@ namespace {
 constexpr int maxPlies = 400;
 constexpr double llrBound = 2.944; // ln((1 - beta) / alpha) with alpha = beta = 0.05
 // alpha = probability of rejecting H0 when it is true (false positive)
-// beta = probability of accepting H0 when it is false (false negative)
+// beta = probability of accepting H0 when H1 is true (false negative)
 
 struct Options {
     std::string engineA;
@@ -41,7 +41,7 @@ struct Options {
 
 struct GameResult {
     double whiteScore = 0.5; // 1 if White wins, 0 if Black wins, 0.5 if draw
-    bool failed = false;
+    bool reachedMaxPlies = false;
     std::vector<std::string> moves;
 };
 
@@ -133,7 +133,7 @@ GameResult playGame(const std::string &white, const std::string &black, const st
         }
     }
 
-    result.failed = true;
+    result.reachedMaxPlies = true;
     return result;
 }
 
@@ -143,16 +143,16 @@ struct Stats {
     int wins = 0;
     int draws = 0;
     int losses = 0;
-    int failed = 0;
+    int reachedMaxPlies = 0;
 
-    void addGame(double scoreA, bool gameFailed) {
+    void addGame(double scoreA, bool gameReachedMaxPlies) {
         if (scoreA == 1)
             wins++;
         else if (scoreA == 0)
             losses++;
         else
             draws++;
-        failed += gameFailed;
+        reachedMaxPlies += gameReachedMaxPlies;
     }
 };
 
@@ -201,10 +201,10 @@ Summary summarize(const Stats &stats, const Options &options) {
 }
 
 void report(const Stats &stats, const Summary &summary) {
-    std::printf("pairs %d  A: +%d =%d -%d  pairs [%d %d %d %d %d]  Elo %+.1f ± %.1f  LLR %.2f (±%.2f)  failed %d\n",
+    std::printf("pairs %d  A: +%d =%d -%d  pairs [%d %d %d %d %d]  Elo %+.1f ± %.1f  LLR %.2f (±%.2f)  reachedMaxPlies %d\n",
                 summary.pairs, stats.wins, stats.draws, stats.losses,
                 stats.pairCounts[0], stats.pairCounts[1], stats.pairCounts[2], stats.pairCounts[3], stats.pairCounts[4],
-                summary.elo, summary.margin, summary.llr, llrBound, stats.failed);
+                summary.elo, summary.margin, summary.llr, llrBound, stats.reachedMaxPlies);
     std::fflush(stdout);
 }
 
@@ -283,15 +283,15 @@ int main(int argc, char *argv[]) {
                 const double scoreABlack = 1 - aBlack.whiteScore;
 
                 const std::lock_guard lock(statsMutex);
-                stats.addGame(scoreAWhite, aWhite.failed);
-                stats.addGame(scoreABlack, aBlack.failed);
+                stats.addGame(scoreAWhite, aWhite.reachedMaxPlies);
+                stats.addGame(scoreABlack, aBlack.reachedMaxPlies);
                 stats.pairCounts[static_cast<int>(std::lround((scoreAWhite + scoreABlack) * 2))]++; // (scoreAWhite + scoreABlack) * 2 gets the bucket index: 0, 1, 2, 3, 4
 
-                // Saves WHITE_SCORE FAILED MOVES for each game
+                // Saves WHITE_SCORE REACHED_MAX_PLIES MOVES for each game
                 for (const GameResult *game : {&aWhite, &aBlack}) {
                     if (!games.is_open())
                         continue;
-                    games << game->whiteScore << ' ' << game->failed;
+                    games << game->whiteScore << ' ' << game->reachedMaxPlies;
                     for (const std::string &move : game->moves)
                         games << ' ' << move;
                     games << '\n';
