@@ -13,8 +13,8 @@ private:
 public:
     ServerConnector(const std::string &address, uint16_t port);
     ~ServerConnector();
-    ServerConnector(const ServerConnector &) = delete;
-    ServerConnector &operator=(const ServerConnector &) = delete;
+    ServerConnector(const ServerConnector &) = delete; // Disable copy construction
+    ServerConnector &operator=(const ServerConnector &) = delete; // Disable copy assignment
 
     void send(const std::string &message);
     std::string receive();

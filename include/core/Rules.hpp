@@ -16,11 +16,11 @@ struct Position {
     Side sideToMove = Side::White;
     Outcome outcome = Outcome::Ongoing;
 
-    static Position start();
+    static Position start(); // Static method: callable without an instance of the struct
 
-    std::vector<Move> calculateLegalMoves() const;
+    std::vector<Move> calculateLegalMoves() const; // Generate legal moves without modifying the position
     int apply(const Move &move);
-    bool operator==(const Position &) const = default;
+    bool operator==(const Position &) const = default; // Automatically compare all members for equality
 };
 
 struct GameHistory {

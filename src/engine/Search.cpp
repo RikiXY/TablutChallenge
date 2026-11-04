@@ -29,9 +29,10 @@ public:
         if (canStop && nodes % 1024 == 0 && Clock::now() >= deadline)
             throw TimeUp{};
 
-        std::vector<Move> moves = position.calculateLegalMoves();
+        std::vector<Move> moves = position.calculateLegalMoves(); // Generate all branches
         if (moves.empty())
             return -(WIN - ply); // The opponent already won because this side can't move
+                                 // ! -ply indica che l'algoritmo preferisce perdere il più tardi possibile
         if (depth == 0)
             return evaluate(position);
 
@@ -39,11 +40,12 @@ public:
         if (first != moves.end())
             std::iter_swap(moves.begin(), first); // Swap the "firstMove" to the front, so it's searched first
 
-        int best = -WIN - 1; // The worst possible score for the side to move
+        int best = -WIN - 1; // ! The worst possible score for the side to move (like -inf in minimax)
+                             // ! perché non direttamente -WIN
         for (const Move &move : moves) {
             Position child = position;
             const bool captured = child.apply(move) > 0;
-            const size_t childEpoch = captured ? path.size() : epochStart;
+            const size_t childEpoch = captured ? path.size() : epochStart; // ?
 
             int score;
             if (child.outcome == Outcome::WhiteWins || child.outcome == Outcome::BlackWins)
@@ -70,7 +72,7 @@ public:
 
 private:
     bool isRepetition(const Position &child, size_t epochStart) const {
-        const auto seen = std::count(path.begin() + static_cast<std::ptrdiff_t>(epochStart), path.end(), child);
+        const auto seen = std::count(path.begin() + static_cast<std::ptrdiff_t>(epochStart), path.end(), child); // ?
         return seen > allowedRepetitions;
     }
 };

@@ -7,7 +7,7 @@
 enum class Mode : uint8_t { Auto,
                             Manual };
 
-struct Config {
+struct Config { // Default values
     Side side = Side::White;
     uint16_t port = 5800;
     int timeout = 60;

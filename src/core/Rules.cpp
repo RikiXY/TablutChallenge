@@ -1,7 +1,7 @@
 #include "core/Rules.hpp"
 #include <cstdlib>
 
-namespace {
+namespace { // Functions declared here are only accessible within this file
 
 bool isEdge(int row, int col) {
     return row == 0 || row == 8 || col == 0 || col == 8;
@@ -46,13 +46,13 @@ bool isWhitePiece(Piece piece) {
     return piece == Piece::White || piece == Piece::King;
 }
 
-void addMoves(std::vector<Move> &moves, const BoardMatrix &board, int row, int col) {
+void addMoves(std::vector<Move> &moves, const BoardMatrix &board, int row, int col) { // Generate all legal moves for a given piece
     for (const auto &[dRow, dCol] : directions) {
         int toRow = row + dRow;
         int toCol = col + dCol;
 
         while (isOnBoard(toRow, toCol) && board[toRow][toCol] == Piece::Empty && isLegal(row, col, toRow, toCol)) {
-            moves.push_back({row, col, toRow, toCol});
+            moves.push_back({row, col, toRow, toCol}); // Initialize a Move object and append it to the vector
             toRow += dRow;
             toCol += dCol;
         }
@@ -108,7 +108,7 @@ Position Position::start() {
     return position;
 }
 
-std::vector<Move> Position::calculateLegalMoves() const {
+std::vector<Move> Position::calculateLegalMoves() const { // Generate legal moves for every piece belonging to the current player
     std::vector<Move> moves;
     if (outcome != Outcome::Ongoing)
         return moves;
@@ -125,10 +125,12 @@ std::vector<Move> Position::calculateLegalMoves() const {
 }
 
 int Position::apply(const Move &move) {
+    // Apply the move to the board
     const Piece pieceToMove = board[move.fromRow][move.fromCol];
     board[move.toRow][move.toCol] = pieceToMove;
     board[move.fromRow][move.fromCol] = Piece::Empty;
 
+    // Simulate the server's capture rules locally
     int captured = 0;
     for (const auto &[dRow, dCol] : directions) {
         // (row, col) is the neighbour that may be captured

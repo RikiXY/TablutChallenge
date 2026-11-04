@@ -1,7 +1,3 @@
-// === CONVENZIONI DA RISPETTARE ===
-// nomi cameCase, no snake_naming
-// 1. i casting possono essere eseguiti o tramite reinterpret_cast<TYPE>(OBJ) (o static_cast<TYPE>(OBJ) ) o tramite TYPE(OBJ), niente (TYPE)OBJ
-
 #include "config/Config.hpp"
 #include "connections/ServerConnector.hpp"
 #include "core/Game.hpp"

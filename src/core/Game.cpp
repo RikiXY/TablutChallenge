@@ -6,7 +6,7 @@
 #include <iostream>
 #include <string>
 
-namespace {
+namespace { // Functions declared here are only accessible within this file
 
 int countPieces(const BoardMatrix &board) {
     int count = 0;
