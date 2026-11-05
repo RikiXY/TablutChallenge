@@ -6,13 +6,15 @@ struct NoLegalMoves {};
 
 class Agent : public Player {
 private:
-    int timeoutSeconds;
+    int timeout;
+    int threads;
 
 public:
     /**
      * @param timeoutSeconds The time per move given by the server, in seconds
+     * @param searchThreads How many threads search the move
      */
-    explicit Agent(int timeoutSeconds);
+    Agent(int timeoutSeconds, int searchThreads);
 
     /**
      * @brief Searches the best move available, using the timeout minus a safety margin. Throws NoLegalMoves if there's no move available

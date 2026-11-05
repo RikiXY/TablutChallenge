@@ -20,9 +20,17 @@ struct SearchResult {
  * @param history The game history
  * @param deadline The deadline (when to stop). Depth 1 always finishes
  * @param maxDepth The maximum depth
- * @return The best move of the last finished depth, with its score, the depth and the nodes searched
+ * @param threads How many threads search together
+ * @return The best move of the last finished depth, with its score, the depth and the nodes searched by all the threads
  */
-SearchResult search(const Position &position, const GameHistory &history, std::chrono::steady_clock::time_point deadline, int maxDepth = 64);
+SearchResult search(const Position &position, const GameHistory &history, std::chrono::steady_clock::time_point deadline, int maxDepth = 64, int threads = 1);
+
+/**
+ * @brief Counts the CPUs this process is allowed to run on
+ *
+ * @return The number of CPUs
+ */
+int usableCpus();
 
 /**
  * @brief Reallocates and clears the transposition table (64 MiB by default)

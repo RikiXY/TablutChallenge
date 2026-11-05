@@ -1,12 +1,27 @@
 #include "config/Config.hpp"
+#include "engine/Search.hpp"
+#include <algorithm>
+#include <cstdlib>
 #include <stdexcept>
+#include <string>
 #include <string_view>
+
+int threadsFromEnvironment(int fallback) {
+    const char *value = std::getenv("TABLUT_THREADS");
+    if (value == nullptr)
+        return fallback;
+    const int threads = std::stoi(value);
+    if (threads < 1 || threads > 64)
+        throw std::invalid_argument("TABLUT_THREADS must be between 1 and 64");
+    return threads;
+}
 
 Config parseArguments(int argc, char *argv[]) {
     if (argc < 4)
         throw std::invalid_argument("Usage: player <WHITE|BLACK> <timeout_s> <server_ip> [-n name] [-m auto|manual]");
 
     Config config;
+    config.threads = threadsFromEnvironment(std::min(usableCpus(), 4));
 
     const std::string_view role(argv[1]);
     if (role == "WHITE")

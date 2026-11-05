@@ -2,7 +2,10 @@
 #include "engine/Evaluation.hpp"
 #include "engine/TranspositionTable.hpp"
 #include <algorithm>
+#include <atomic>
 #include <cstdlib>
+#include <sched.h>
+#include <thread>
 #include <vector>
 
 namespace {
@@ -79,6 +82,7 @@ Bound boundOf(int score, int alpha, int beta) {
 class Searcher {
 private:
     Clock::time_point deadline;
+    const std::atomic<bool> &stop;
     int allowedRepetitions;
     std::vector<uint64_t> path;
 
@@ -89,10 +93,11 @@ public:
 
     /**
      * @param searchDeadline When the search has to stop
+     * @param stopSignal Becomes true when the search has to stop right away
      * @param history The game history, where the repetition path starts
      */
-    Searcher(Clock::time_point searchDeadline, const GameHistory &history)
-        : deadline(searchDeadline), allowedRepetitions(history.allowedRepetitions), path(history.sinceLastCapture) {}
+    Searcher(Clock::time_point searchDeadline, const std::atomic<bool> &stopSignal, const GameHistory &history)
+        : deadline(searchDeadline), stop(stopSignal), allowedRepetitions(history.allowedRepetitions), path(history.sinceLastCapture) {}
 
     /**
      * @brief Alpha-beta search of a position. Throws TimeUp when the deadline is reached
@@ -108,11 +113,12 @@ public:
      */
     int negamax(const Position &position, int depth, int alpha, int beta, int ply, size_t epochStart, Move firstMove) {
         nodes++;
-        if (canStop && nodes % 1024 == 0 && Clock::now() >= deadline)
+        // memory_order_relaxed is enough to just read the value
+        if (stop.load(std::memory_order_relaxed) || (canStop && nodes % 1024 == 0 && Clock::now() >= deadline))
             throw TimeUp{};
 
         const int originalAlpha = alpha;
-        const TranspositionTable::Entry *entry = depth > 0 && ply > 0 ? table.probe(position.hash) : nullptr;
+        const auto entry = depth > 0 && ply > 0 ? table.probe(position.hash) : std::nullopt;
         if (entry) {
             const int score = fromTable(entry->score, ply);
             if (entry->depth >= depth && settles(entry->bound, score, alpha, beta))
@@ -180,14 +186,19 @@ private:
     }
 };
 
-} // namespace
-
-SearchResult search(const Position &position, const GameHistory &history, Clock::time_point deadline, int maxDepth) {
-    Searcher searcher(deadline, history);
+/**
+ * @brief Iterative deepening until the deadline, maxDepth or a forced win or loss
+ *
+ * @param searcher The searcher to use
+ * @param position The position to search
+ * @param firstDepth The depth to start from
+ * @param maxDepth The maximum depth
+ * @param deadline When to stop
+ * @return The best move of the last finished depth, with its score and the depth
+ */
+SearchResult iterativeDeepening(Searcher &searcher, const Position &position, int firstDepth, int maxDepth, Clock::time_point deadline) {
     SearchResult result;
-    table.newSearch();
-
-    for (int depth = 1; depth <= maxDepth; depth++) {
+    for (int depth = firstDepth; depth <= maxDepth; depth++) {
         searcher.canStop = depth > 1;
         int score;
         try {
@@ -202,8 +213,39 @@ SearchResult search(const Position &position, const GameHistory &history, Clock:
         if (std::abs(score) >= WIN_BOUND || Clock::now() >= deadline)
             break;
     }
-    result.nodes = searcher.nodes;
     return result;
+}
+
+} // namespace
+
+SearchResult search(const Position &position, const GameHistory &history, Clock::time_point deadline, int maxDepth, int threads) {
+    table.newSearch();
+    std::atomic<bool> stop = false;
+
+    std::vector<Searcher> helpers;
+    for (int i = 1; i < threads; i++)
+        helpers.emplace_back(deadline, stop, history);
+    std::vector<std::thread> workers;
+    for (size_t i = 0; i < helpers.size(); i++)
+        workers.emplace_back([&, i] { iterativeDeepening(helpers[i], position, 1 + static_cast<int>(i % 2), maxDepth, deadline); });
+
+    Searcher searcher(deadline, stop, history);
+    SearchResult result = iterativeDeepening(searcher, position, 1, maxDepth, deadline);
+    result.nodes = searcher.nodes;
+
+    stop = true;
+    for (std::thread &worker : workers)
+        worker.join();
+    for (const Searcher &helper : helpers)
+        result.nodes += helper.nodes;
+    return result;
+}
+
+int usableCpus() {
+    cpu_set_t set;
+    if (sched_getaffinity(0, sizeof(set), &set) != 0)
+        return 1;
+    return CPU_COUNT(&set);
 }
 
 void resizeTranspositionTable(size_t megabytes) {

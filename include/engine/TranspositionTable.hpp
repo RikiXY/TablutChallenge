@@ -3,6 +3,7 @@
 #include "core/Board.hpp"
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 enum class Bound : uint8_t { None,
@@ -27,7 +28,14 @@ public:
     };
 
 private:
-    std::vector<Entry> entries;
+    // Shared by the search threads
+    // keyXorData is key ^ data
+    struct Slot {
+        uint64_t keyXorData = 0;
+        uint64_t data = 0;
+    };
+
+    std::vector<Slot> slots;
     uint8_t generation = 0;
 
 public:
@@ -54,9 +62,9 @@ public:
      * @brief Looks up a position
      *
      * @param key The position hash
-     * @return The entry or nullptr if the position isn't stored
+     * @return A copy of the entry, nothing if the position isn't stored
      */
-    const Entry *probe(uint64_t key) const;
+    std::optional<Entry> probe(uint64_t key) const;
 
     /**
      * @brief Saves a search result. Replaces the slot unless it holds another position from this same search with a deeper search result

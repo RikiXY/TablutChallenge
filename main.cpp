@@ -45,7 +45,7 @@ void think(int argc, char *argv[]) {
 
     // Get the best move with the given time limit
     const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(std::stoi(argv[2]));
-    const SearchResult result = search(position, history, deadline);
+    const SearchResult result = search(position, history, deadline, 64, threadsFromEnvironment(1)); // 1 by default, so arena games running in parallel don't fight for the CPUs
     std::cout << "bestmove " << moveToText(result.bestMove) << " depth " << result.depth
               << " score " << result.score << " nodes " << result.nodes << std::endl;
 }
@@ -64,6 +64,7 @@ int main(int argc, char *argv[]) {
 
         const Config config = parseArguments(argc, argv);
         resizeTranspositionTable(512);
+        std::cout << "Search threads: " << config.threads << std::endl;
 
         ServerConnector connection(config.ip, config.port);
         std::cout << "Connected" << std::endl;
