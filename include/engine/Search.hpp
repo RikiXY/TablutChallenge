@@ -1,6 +1,7 @@
 #pragma once
 
-#include "core/Rules.hpp"
+#include "core/GameHistory.hpp"
+#include "core/Position.hpp"
 #include <chrono>
 #include <cstddef>
 #include <cstdint>

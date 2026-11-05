@@ -1,6 +1,7 @@
 // build/arena -a build/player -b build/player-base -ms 100 -c 4 -games logs/games.txt
 
-#include "core/Rules.hpp"
+#include "core/GameHistory.hpp"
+#include "core/Position.hpp"
 #include "core/Translator.hpp"
 #include <algorithm>
 #include <array>

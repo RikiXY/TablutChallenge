@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/Rules.hpp"
+#include "core/Position.hpp"
 #include <cstdint>
 #include <string>
 

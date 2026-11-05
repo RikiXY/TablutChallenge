@@ -18,9 +18,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 add_library(tablut STATIC
     # Core
     src/core/Board.cpp
+    src/core/Position.cpp
+    src/core/GameHistory.cpp
     src/core/Game.cpp
     src/core/Translator.cpp
-    src/core/Rules.cpp
 
     # Engine
     src/engine/Evaluation.cpp

@@ -2,7 +2,8 @@
 
 #include "config/Config.hpp"
 #include "connections/ServerConnector.hpp"
-#include "core/Rules.hpp"
+#include "core/GameHistory.hpp"
+#include "core/Position.hpp"
 
 class Game {
 private:

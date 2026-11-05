@@ -25,23 +25,4 @@ struct Position {
     bool operator==(const Position &) const = default; // Automatically compare all members for equality
 };
 
-struct GameHistory {
-    int allowedRepetitions = 0;
-    std::vector<uint64_t> sinceLastCapture;
-
-    bool push(const Position &after, bool captured);
-};
-
 uint64_t perft(const Position &position, int depth);
-
-constexpr int directions[4][2] = {{0, -1}, {0, 1}, {-1, 0}, {1, 0}}; // left, right, up, down
-
-constexpr bool isOnBoard(int row, int col) {
-    return row >= 0 && row < 9 && col >= 0 && col < 9;
-}
-
-constexpr bool isThrone(int row, int col) {
-    return row == 4 && col == 4;
-}
-
-bool isCamp(int row, int col);

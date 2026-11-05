@@ -18,4 +18,19 @@ struct Move {
     bool operator==(const Move &) const = default; // Automatically compare all members for equality
 };
 
+constexpr int directions[4][2] = {{0, -1}, {0, 1}, {-1, 0}, {1, 0}}; // left, right, up, down
+
+constexpr bool isOnBoard(int row, int col) {
+    return row >= 0 && row < 9 && col >= 0 && col < 9;
+}
+
+constexpr bool isThrone(int row, int col) {
+    return row == 4 && col == 4;
+}
+
+bool isEdge(int row, int col);
+int campOf(int row, int col);
+bool isCamp(int row, int col);
+bool isCampCenter(int row, int col);
+
 void printBoard(const BoardMatrix &board);

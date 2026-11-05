@@ -1,29 +1,8 @@
-#include "core/Rules.hpp"
-#include <algorithm>
+#include "core/Position.hpp"
 #include <array>
 #include <cstdlib>
 
 namespace { // Functions declared here are only accessible within this file
-
-bool isEdge(int row, int col) {
-    return row == 0 || row == 8 || col == 0 || col == 8;
-}
-
-int campOf(int row, int col) {
-    if ((row == 0 || row == 8) && col >= 3 && col <= 5)
-        return row == 0 ? 0 : 1;
-    if ((col == 0 || col == 8) && row >= 3 && row <= 5)
-        return col == 0 ? 2 : 3;
-    if (row == 1 && col == 4)
-        return 0;
-    if (row == 7 && col == 4)
-        return 1;
-    if (row == 4 && col == 1)
-        return 2;
-    if (row == 4 && col == 7)
-        return 3;
-    return -1;
-}
 
 struct ZobristKeys {
     std::array<std::array<uint64_t, 81>, 4> piece{};
@@ -51,18 +30,6 @@ constexpr ZobristKeys zobrist = makeKeys();
 
 uint64_t key(Piece piece, int row, int col) {
     return zobrist.piece[static_cast<int>(piece)][row * 9 + col];
-}
-
-} // namespace
-
-bool isCamp(int row, int col) {
-    return campOf(row, col) != -1;
-}
-
-namespace {
-
-bool isCampCenter(int row, int col) {
-    return (row == 0 && col == 4) || (row == 8 && col == 4) || (row == 4 && col == 0) || (row == 4 && col == 8);
 }
 
 bool isLegal(int fromRow, int fromCol, int toRow, int toCol) {
@@ -203,18 +170,6 @@ void Position::computeHash() {
     for (int row = 0; row < 9; row++)
         for (int col = 0; col < 9; col++)
             hash ^= key(board[row][col], row, col);
-}
-
-bool GameHistory::push(const Position &after, bool captured) {
-    if (captured) // If a capture occurred, the previous positions are no longer possible to repeat and therefore useless to keep track of
-        sinceLastCapture.clear();
-
-    const auto seen = after.outcome == Outcome::Ongoing
-                          ? std::count(sinceLastCapture.begin(), sinceLastCapture.end(), after.hash)
-                          : 0;
-
-    sinceLastCapture.push_back(after.hash);
-    return seen > allowedRepetitions;
 }
 
 uint64_t perft(const Position &position, int depth) {
