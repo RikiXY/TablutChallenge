@@ -18,6 +18,12 @@
 
 namespace {
 
+/**
+ * @brief Replays the moves from the start and prints the best move
+ *
+ * @param argc The number of arguments
+ * @param argv The arguments
+ */
 void think(int argc, char *argv[]) {
     // Apply the previous moves
     Position position = Position::start();
@@ -46,6 +52,9 @@ void think(int argc, char *argv[]) {
 
 } // namespace
 
+/**
+ * @brief Runs the arena command, or connects to the server and plays a game
+ */
 int main(int argc, char *argv[]) {
     try {
         if (argc >= 3 && std::string_view(argv[1]) == "think") {

@@ -8,6 +8,12 @@
 
 namespace { // Functions declared here are only accessible within this file
 
+/**
+ * @brief Counts the pieces on the board
+ *
+ * @param board The board
+ * @return The number of pieces on the board
+ */
 int countPieces(const BoardMatrix &board) {
     int count = 0;
     for (const auto &row : board)
@@ -17,6 +23,12 @@ int countPieces(const BoardMatrix &board) {
     return count;
 }
 
+/**
+ * @brief Translates the position outcome into the server's turn
+ *
+ * @param position The position
+ * @return WHITE, BLACK, WHITEWIN, BLACKWIN or DRAW
+ */
 const char *turnName(const Position &position) {
     switch (position.outcome) {
     case Outcome::WhiteWins:

@@ -9,7 +9,11 @@ struct ZobristKeys {
     uint64_t whiteToMove = 0;
 };
 
-// Taken from https://prng.di.unimi.it/splitmix.c
+/**
+ * @brief Generates the Zobrist keys at compile time with SplitMix64. Taken from https://prng.di.unimi.it/splitmix.c
+ *
+ * @return The keys
+ */
 constexpr ZobristKeys makeKeys() {
     uint64_t state = 0x9E3779B97F4A7C15ull;
     auto next = [&state] {
@@ -28,10 +32,27 @@ constexpr ZobristKeys makeKeys() {
 
 constexpr ZobristKeys zobrist = makeKeys();
 
+/**
+ * @brief Gets the Zobrist key of a piece on a cell
+ *
+ * @param piece The piece
+ * @param row The row of the cell
+ * @param col The column of the cell
+ * @return The key (always 0 for an empty cell)
+ */
 uint64_t key(Piece piece, int row, int col) {
     return zobrist.piece[static_cast<int>(piece)][row * 9 + col];
 }
 
+/**
+ * @brief Checks whether a piece can stop on a cell
+ *
+ * @param fromRow The row the piece starts from
+ * @param fromCol The column the piece starts from
+ * @param toRow The row of the target cell
+ * @param toCol The column of the target cell
+ * @return true if the piece can stop there
+ */
 bool isLegal(int fromRow, int fromCol, int toRow, int toCol) {
     if (isThrone(toRow, toCol))
         return false;
@@ -39,11 +60,25 @@ bool isLegal(int fromRow, int fromCol, int toRow, int toCol) {
     return targetCamp == -1 || targetCamp == campOf(fromRow, fromCol); // A pawn can move to a camp only if it is already in that same camp
 }
 
+/**
+ * @brief Checks whether a piece belongs to White
+ *
+ * @param piece The piece
+ * @return true for a white pawn or the king
+ */
 bool isWhitePiece(Piece piece) {
     return piece == Piece::White || piece == Piece::King;
 }
 
-void addMoves(std::vector<Move> &moves, const BoardMatrix &board, int row, int col) { // Generate all legal moves for a given piece
+/**
+ * @brief Generates all legal moves for a given piece
+ *
+ * @param moves Where to add the moves
+ * @param board The board
+ * @param row The row of the piece
+ * @param col The column of the piece
+ */
+void addMoves(std::vector<Move> &moves, const BoardMatrix &board, int row, int col) {
     for (const auto &[dRow, dCol] : directions) {
         int toRow = row + dRow;
         int toCol = col + dCol;
@@ -56,17 +91,40 @@ void addMoves(std::vector<Move> &moves, const BoardMatrix &board, int row, int c
     }
 }
 
-// Checks whether (row, col) can be used to capture a black pawn
+/**
+ * @brief Checks whether a cell can be used to capture a black pawn
+ *
+ * @param board The board
+ * @param row The row of the cell
+ * @param col The column of the cell
+ * @return true for a white piece, the throne or a camp cell that isn't a center
+ */
 bool isHostileToBlack(const BoardMatrix &board, int row, int col) {
     return isWhitePiece(board[row][col]) || isThrone(row, col) || (isCamp(row, col) && !isCampCenter(row, col));
 }
 
-// Checks whether (row, col) can be used to capture a white pawn
+/**
+ * @brief Checks whether a cell can be used to capture a white pawn
+ *
+ * @param board The board
+ * @param row The row of the cell
+ * @param col The column of the cell
+ * @return true for a black pawn, the throne or a camp cell
+ */
 bool isHostileToWhite(const BoardMatrix &board, int row, int col) {
     return board[row][col] == Piece::Black || isThrone(row, col) || isCamp(row, col);
 }
 
-// Checks whether the king (kingRow, kingCol) is captured, checking the other side of the square (beyondRow, beyondCol) for an active capture
+/**
+ * @brief Checks whether the king is captured by the black pawn that just moved next to it
+ *
+ * @param board The board after the move
+ * @param kingRow The row of the king
+ * @param kingCol The column of the king
+ * @param beyondRow The row of the cell on the other side of the king, seen from the pawn that moved
+ * @param beyondCol The column of that cell
+ * @return true if the king is captured
+ */
 bool isKingCaptured(const BoardMatrix &board, int kingRow, int kingCol, int beyondRow, int beyondCol) {
     const bool onOrNextToThrone = std::abs(kingRow - 4) + std::abs(kingCol - 4) <= 1; // Manhattan distance between the king and the throne
 
@@ -106,7 +164,7 @@ Position Position::start() {
     return position;
 }
 
-std::vector<Move> Position::calculateLegalMoves() const { // Generate legal moves for every piece belonging to the current player
+std::vector<Move> Position::calculateLegalMoves() const {
     std::vector<Move> moves;
     if (outcome != Outcome::Ongoing)
         return moves;

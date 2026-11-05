@@ -29,7 +29,19 @@ using Weights = std::array<int, FeatureCount>;
 
 extern const Weights defaultWeights;
 
+/**
+ * @brief Computes the features of a position from White's point of view
+ *
+ * @param position The position
+ * @return The value of each feature
+ */
 Features computeFeatures(const Position &position);
 
-// From the side to move's point of view
+/**
+ * @brief Scores a position from the side to move's point of view
+ *
+ * @param position The position
+ * @param weights The weight of each feature
+ * @return The score, positive if it's good for the side to move
+ */
 int evaluate(const Position &position, const Weights &weights = defaultWeights);

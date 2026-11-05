@@ -19,12 +19,27 @@ const Weights defaultWeights = {
 
 namespace {
 
+/**
+ * @brief Checks whether a cell stops the king
+ *
+ * @param board The board
+ * @param row The row of the cell
+ * @param col The column of the cell
+ * @return true if the king can't go there or past it
+ */
 bool blocksKing(const BoardMatrix &board, int row, int col) {
     const Piece piece = board[row][col];
     return (piece != Piece::Empty && piece != Piece::King) || isCamp(row, col) || isThrone(row, col);
 }
 
-bool isCornerGuard(int row, int col) { // b3 b7 h3 h7 c2 c8 g2 g8
+/**
+ * @brief Checks whether a cell guards a corner (b3 b7 h3 h7 c2 c8 g2 g8)
+ *
+ * @param row The row of the cell
+ * @param col The column of the cell
+ * @return true if it's one of those cells
+ */
+bool isCornerGuard(int row, int col) {
     return ((row == 2 || row == 6) && (col == 1 || col == 7)) || ((row == 1 || row == 7) && (col == 2 || col == 6));
 }
 
@@ -33,6 +48,16 @@ struct Ray {
     bool reachesEdge = false;
 };
 
+/**
+ * @brief Creates a ray from the king in a direction
+ *
+ * @param board The board
+ * @param kingRow The row of the king
+ * @param kingCol The column of the king
+ * @param dRow The row step of the direction
+ * @param dCol The column step of the direction
+ * @return How many cells the king can move along the line and whether it reaches the edge
+ */
 Ray kingRay(const BoardMatrix &board, int kingRow, int kingCol, int dRow, int dCol) {
     Ray ray;
     int row = kingRow + dRow;
@@ -46,6 +71,14 @@ Ray kingRay(const BoardMatrix &board, int kingRow, int kingCol, int dRow, int dC
     return ray;
 }
 
+/**
+ * @brief Counts how many directions have a clear line to the edge from the king's cell
+ *
+ * @param board The board
+ * @param row The row of the king
+ * @param col The column of the king
+ * @return The number of open lines
+ */
 int openRays(const BoardMatrix &board, int row, int col) {
     int count = 0;
     for (const auto &[dRow, dCol] : directions)

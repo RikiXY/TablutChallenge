@@ -56,6 +56,7 @@ target_compile_options(tablut PUBLIC
     -Wpedantic
     -Wshadow
     -Wconversion
+    -Wno-sign-conversion
 )
 
 # Tournament player

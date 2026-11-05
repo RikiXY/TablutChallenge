@@ -13,16 +13,39 @@ struct TimeUp {};
 
 TranspositionTable table(64);
 
+/**
+ * @brief Converts a score to store it in the table (the table counts the plies from the node where the score was computed, not from the root)
+ *
+ * @param score The score
+ * @param ply The distance of the node from the root
+ * @return The score to store
+ */
 int toTable(int score, int ply) {
     if (std::abs(score) <= WIN_BOUND) // Not a win or a loss
         return score;
     return score > 0 ? score + ply : score - ply;
 }
 
+/**
+ * @brief Converts a score read from the table back to counting the plies from the root
+ *
+ * @param score The stored score
+ * @param ply The distance of the node from the root
+ * @return The score
+ */
 int fromTable(int score, int ply) {
     return toTable(score, -ply);
 }
 
+/**
+ * @brief Checks whether a table result is enough to skip the search
+ *
+ * @param bound What the stored score means
+ * @param score The stored score
+ * @param alpha The lower end of the search window
+ * @param beta The upper end of the search window
+ * @return true for an exact score, a lower bound >= beta or an upper bound <= alpha
+ */
 bool settles(Bound bound, int score, int alpha, int beta) {
     switch (bound) {
     case Bound::Exact:
@@ -37,6 +60,14 @@ bool settles(Bound bound, int score, int alpha, int beta) {
     return false;
 }
 
+/**
+ * @brief Calculates the bound of a score with respect to the search window
+ *
+ * @param score The score returned
+ * @param alpha The lower end of the search window before the search
+ * @param beta The upper end of the search window
+ * @return Upper if no move beat alpha, Lower if there was a cutoff, Exact otherwise
+ */
 Bound boundOf(int score, int alpha, int beta) {
     if (score <= alpha)
         return Bound::Upper;
@@ -56,9 +87,25 @@ public:
     uint64_t nodes = 0;
     Move rootBest{};
 
+    /**
+     * @param searchDeadline When the search has to stop
+     * @param history The game history, where the repetition path starts
+     */
     Searcher(Clock::time_point searchDeadline, const GameHistory &history)
         : deadline(searchDeadline), allowedRepetitions(history.allowedRepetitions), path(history.sinceLastCapture) {}
 
+    /**
+     * @brief Alpha-beta search of a position. Throws TimeUp when the deadline is reached
+     *
+     * @param position The position to search
+     * @param depth How many plies are left to search
+     * @param alpha The score the side to move already has guranteed somewhere else
+     * @param beta The score the opponent already has guranteed somewhere else, not allowing moves better than that
+     * @param ply The distance from the root
+     * @param epochStart Where the positions since the last capture start in path
+     * @param firstMove The move to search first
+     * @return The score from the side to move's point of view
+     */
     int negamax(const Position &position, int depth, int alpha, int beta, int ply, size_t epochStart, Move firstMove) {
         nodes++;
         if (canStop && nodes % 1024 == 0 && Clock::now() >= deadline)
@@ -119,6 +166,13 @@ public:
     }
 
 private:
+    /**
+     * @brief Checks whether a position is a draw by repetition
+     *
+     * @param child The position after the move
+     * @param epochStart Where the positions since the last capture start in path
+     * @return true if it was already seen more than allowedRepetitions times
+     */
     bool isRepetition(const Position &child, size_t epochStart) const {
         // Counts how many times the child position (its hash) has been seen since the last capture
         const auto seen = std::count(path.begin() + static_cast<std::ptrdiff_t>(epochStart), path.end(), child.hash);

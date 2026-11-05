@@ -2,7 +2,6 @@
 #include "core/Translator.hpp"
 
 #include <iostream>
-#include <stdexcept>
 #include <string>
 
 Move Human::chooseMove(const Position &, const GameHistory &, std::chrono::steady_clock::time_point) {

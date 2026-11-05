@@ -16,4 +16,11 @@ struct Config { // Default values
     Mode mode = Mode::Auto;
 };
 
+/**
+ * @brief Reads the command line options. Throws with the usage if they are wrong
+ *
+ * @param argc The number of arguments
+ * @param argv The arguments
+ * @return The options
+ */
 Config parseArguments(int argc, char *argv[]);

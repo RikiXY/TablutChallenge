@@ -24,7 +24,6 @@ const TranspositionTable::Entry *TranspositionTable::probe(uint64_t key) const {
     return entry.bound != Bound::None && entry.key == key ? &entry : nullptr;
 }
 
-// Replace the slot unless it holds a result for another position from this same search with a deeper search result
 void TranspositionTable::store(uint64_t key, const Move &move, int score, int depth, Bound bound) {
     Entry &entry = entries[key & (entries.size() - 1)]; // key & (entries.size() - 1) = hash % entries.size() but faster because size is a power of 2
     if (entry.key != key && entry.generation == generation && entry.depth > depth)
