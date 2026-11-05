@@ -2,6 +2,7 @@
 
 #include "core/Rules.hpp"
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
 
 struct SearchResult {
@@ -12,3 +13,6 @@ struct SearchResult {
 };
 
 SearchResult search(const Position &position, const GameHistory &history, std::chrono::steady_clock::time_point deadline, int maxDepth = 64);
+
+// 64 MiB by default
+void resizeTranspositionTable(size_t megabytes);

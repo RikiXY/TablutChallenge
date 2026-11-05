@@ -5,7 +5,7 @@
 #include <chrono>
 #include <iostream>
 
-Agent::Agent(int timeoutSeconds) : timeoutSeconds(timeoutSeconds) {}
+Agent::Agent(int timeout) : timeoutSeconds(timeout) {}
 
 Move Agent::chooseMove(const Position &position, const GameHistory &history, std::chrono::steady_clock::time_point startingTime) {
     if (position.calculateLegalMoves().empty())

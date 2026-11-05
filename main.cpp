@@ -54,6 +54,7 @@ int main(int argc, char *argv[]) {
         }
 
         const Config config = parseArguments(argc, argv);
+        resizeTranspositionTable(512);
 
         ServerConnector connection(config.ip, config.port);
         std::cout << "Connected" << std::endl;

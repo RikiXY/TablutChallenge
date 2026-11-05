@@ -3,6 +3,11 @@ cmake_minimum_required(VERSION 3.16)
 
 project(TablutChallenge LANGUAGES CXX)
 
+# Release by default
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
+
 # C++ configuration
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -20,6 +25,7 @@ add_library(tablut STATIC
     # Engine
     src/engine/Evaluation.cpp
     src/engine/Search.cpp
+    src/engine/TranspositionTable.cpp
 
     # Config
     src/config/Config.cpp
@@ -47,6 +53,8 @@ target_compile_options(tablut PUBLIC
     -Wall
     -Wextra
     -Wpedantic
+    -Wshadow
+    -Wconversion
 )
 
 # Tournament player
