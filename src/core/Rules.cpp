@@ -1,4 +1,6 @@
 #include "core/Rules.hpp"
+#include <algorithm>
+#include <array>
 #include <cstdlib>
 
 namespace { // Functions declared here are only accessible within this file
@@ -21,6 +23,34 @@ int campOf(int row, int col) {
     if (row == 4 && col == 7)
         return 3;
     return -1;
+}
+
+struct ZobristKeys {
+    std::array<std::array<uint64_t, 81>, 4> piece{};
+    uint64_t whiteToMove = 0;
+};
+
+// Taken from https://prng.di.unimi.it/splitmix.c
+constexpr ZobristKeys makeKeys() {
+    uint64_t state = 0x9E3779B97F4A7C15ull;
+    auto next = [&state] {
+        uint64_t z = (state += 0x9E3779B97F4A7C15ull);
+        z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ull;
+        z = (z ^ (z >> 27)) * 0x94D049BB133111EBull;
+        return z ^ (z >> 31);
+    };
+    ZobristKeys keys;
+    for (Piece p : {Piece::White, Piece::Black, Piece::King})
+        for (uint64_t &key : keys.piece[static_cast<int>(p)])
+            key = next();
+    keys.whiteToMove = next();
+    return keys;
+}
+
+constexpr ZobristKeys zobrist = makeKeys();
+
+uint64_t key(Piece piece, int row, int col) {
+    return zobrist.piece[static_cast<int>(piece)][row * 9 + col];
 }
 
 } // namespace
@@ -105,6 +135,7 @@ Position Position::start() {
     // Set the king in the throne
     position.board[4][4] = Piece::King;
 
+    position.computeHash();
     return position;
 }
 
@@ -129,6 +160,7 @@ int Position::apply(const Move &move) {
     const Piece pieceToMove = board[move.fromRow][move.fromCol];
     board[move.toRow][move.toCol] = pieceToMove;
     board[move.fromRow][move.fromCol] = Piece::Empty;
+    hash ^= key(pieceToMove, move.fromRow, move.fromCol) ^ key(pieceToMove, move.toRow, move.toCol);
 
     // Simulate the server's capture rules locally
     int captured = 0;
@@ -147,9 +179,11 @@ int Position::apply(const Move &move) {
 
         if (sideToMove == Side::White && target == Piece::Black && beyondOnBoard && isHostileToBlack(board, beyondRow, beyondCol)) {
             board[row][col] = Piece::Empty;
+            hash ^= key(target, row, col);
             captured++;
         } else if (sideToMove == Side::Black && target == Piece::White && beyondOnBoard && isHostileToWhite(board, beyondRow, beyondCol)) {
             board[row][col] = Piece::Empty;
+            hash ^= key(target, row, col);
             captured++;
         } else if (sideToMove == Side::Black && target == Piece::King && isKingCaptured(board, row, col, beyondRow, beyondCol)) {
             outcome = Outcome::BlackWins;
@@ -160,20 +194,26 @@ int Position::apply(const Move &move) {
         outcome = Outcome::WhiteWins;
 
     sideToMove = sideToMove == Side::White ? Side::Black : Side::White;
+    hash ^= zobrist.whiteToMove;
     return captured;
+}
+
+void Position::computeHash() {
+    hash = sideToMove == Side::White ? zobrist.whiteToMove : 0;
+    for (int row = 0; row < 9; row++)
+        for (int col = 0; col < 9; col++)
+            hash ^= key(board[row][col], row, col);
 }
 
 bool GameHistory::push(const Position &after, bool captured) {
     if (captured) // If a capture occurred, the previous positions are no longer possible to repeat and therefore useless to keep track of
         sinceLastCapture.clear();
 
-    int seen = 0;
-    if (after.outcome == Outcome::Ongoing)
-        for (const Position &position : sinceLastCapture)
-            if (position == after)
-                seen++;
+    const auto seen = after.outcome == Outcome::Ongoing
+                          ? std::count(sinceLastCapture.begin(), sinceLastCapture.end(), after.hash)
+                          : 0;
 
-    sinceLastCapture.push_back(after);
+    sinceLastCapture.push_back(after.hash);
     return seen > allowedRepetitions;
 }
 

@@ -15,17 +15,19 @@ struct Position {
     BoardMatrix board{};
     Side sideToMove = Side::White;
     Outcome outcome = Outcome::Ongoing;
+    uint64_t hash = 0;
 
     static Position start(); // Static method: callable without an instance of the struct
 
     std::vector<Move> calculateLegalMoves() const; // Generate legal moves without modifying the position
     int apply(const Move &move);
+    void computeHash();
     bool operator==(const Position &) const = default; // Automatically compare all members for equality
 };
 
 struct GameHistory {
     int allowedRepetitions = 0;
-    std::vector<Position> sinceLastCapture;
+    std::vector<uint64_t> sinceLastCapture;
 
     bool push(const Position &after, bool captured);
 };

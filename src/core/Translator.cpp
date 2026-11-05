@@ -63,6 +63,7 @@ Position parsePosition(const std::string &json) {
     else
         throw std::invalid_argument("Anomaly in JSON turn detected: " + std::string(turn));
 
+    position.computeHash();
     return position;
 }
 

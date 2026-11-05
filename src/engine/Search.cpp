@@ -14,7 +14,7 @@ class Searcher {
 private:
     Clock::time_point deadline;
     int allowedRepetitions;
-    std::vector<Position> path;
+    std::vector<uint64_t> path;
 
 public:
     bool canStop = false;
@@ -53,7 +53,7 @@ public:
             else if (isRepetition(child, childEpoch))
                 score = 0;
             else {
-                path.push_back(child);
+                path.push_back(child.hash);
                 score = -negamax(child, depth - 1, -beta, -alpha, ply + 1, childEpoch, Move{});
                 path.pop_back();
             }
@@ -72,7 +72,8 @@ public:
 
 private:
     bool isRepetition(const Position &child, size_t epochStart) const {
-        const auto seen = std::count(path.begin() + static_cast<std::ptrdiff_t>(epochStart), path.end(), child); // ?
+        // Counts how many times the child position (its hash) has been seen since the last capture
+        const auto seen = std::count(path.begin() + static_cast<std::ptrdiff_t>(epochStart), path.end(), child.hash);
         return seen > allowedRepetitions;
     }
 };
