@@ -85,11 +85,26 @@ private:
     const std::atomic<bool> &stop;
     int allowedRepetitions;
     std::vector<uint64_t> path;
+    bool useNetwork = isNetworkLoaded();
+    std::vector<Accumulator> accumulators;
 
 public:
     bool canStop = false;
     uint64_t nodes = 0;
     Move rootBest{};
+
+    /**
+     * @brief Prepares the accumulators for a search of a position
+     *
+     * @param root The position to search
+     * @param maxDepth The maximum depth of the search
+     */
+    void startAccumulators(const Position &root, int maxDepth) {
+        if (!useNetwork)
+            return;
+        accumulators.resize(static_cast<size_t>(maxDepth) + 1);
+        accumulators[0] = makeAccumulator(root);
+    }
 
     /**
      * @param searchDeadline When the search has to stop
@@ -131,7 +146,7 @@ public:
             return -(WIN - ply); // The opponent already won because this side can't move
                                  // ! -ply indica che l'algoritmo preferisce perdere il più tardi possibile
         if (depth == 0)
-            return evaluate(position);
+            return evaluate(position, defaultWeights, useNetwork ? &accumulators[ply] : nullptr);
 
         const auto first = std::find(moves.begin(), moves.end(), firstMove);
         if (first != moves.end())
@@ -152,6 +167,8 @@ public:
                 score = 0;
             else {
                 path.push_back(child.hash);
+                if (useNetwork)
+                    accumulators[ply + 1] = updateAccumulator(accumulators[ply], position, child);
                 score = -negamax(child, depth - 1, -beta, -alpha, ply + 1, childEpoch, Move{});
                 path.pop_back();
             }
@@ -198,6 +215,7 @@ private:
  */
 SearchResult iterativeDeepening(Searcher &searcher, const Position &position, int firstDepth, int maxDepth, Clock::time_point deadline) {
     SearchResult result;
+    searcher.startAccumulators(position, maxDepth);
     for (int depth = firstDepth; depth <= maxDepth; depth++) {
         searcher.canStop = depth > 1;
         int score;

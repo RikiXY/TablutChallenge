@@ -146,11 +146,16 @@ Features computeFeatures(const Position &position) {
     return features;
 }
 
-int evaluate(const Position &position, const Weights &weights) {
+int linearScore(const Position &position, const Weights &weights) {
     const Features features = computeFeatures(position);
     int whiteScore = 0;
     for (int i = 0; i < FeatureCount; i++)
         whiteScore += weights[i] * features[i];
-    whiteScore += networkScore(position);
+    return whiteScore;
+}
+
+int evaluate(const Position &position, const Weights &weights, const Accumulator *accumulator) {
+    const int network = accumulator ? networkScore(*accumulator) : networkScore(position);
+    const int whiteScore = linearScore(position, weights) + network;
     return position.sideToMove == Side::White ? whiteScore : -whiteScore;
 }

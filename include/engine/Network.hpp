@@ -16,6 +16,10 @@ struct Network {
     float outputBias;
 };
 
+struct Accumulator {
+    float hidden[NETWORK_HIDDEN];
+};
+
 /**
  * @brief Loads the NNUE
  *
@@ -28,6 +32,39 @@ bool loadNetwork(const std::string &path);
  * @brief Loads the network from the file in TABLUT_NNUE (if set). Throws if it can't be loaded
  */
 void loadNetworkFromEnvironment();
+
+/**
+ * @brief Checks if a network is loaded
+ *
+ * @return true if a network is loaded
+ */
+bool isNetworkLoaded();
+
+/**
+ * @brief Calculates the hidden layer of a position from scratch
+ *
+ * @param position The position
+ * @return The accumulator
+ */
+Accumulator makeAccumulator(const Position &position);
+
+/**
+ * @brief Calculates the accumulator after a move from the one before it
+ *
+ * @param accumulator The accumulator of the position before the move
+ * @param before The position before the move
+ * @param after The position after the move
+ * @return The accumulator of the position after the move
+ */
+Accumulator updateAccumulator(const Accumulator &accumulator, const Position &before, const Position &after);
+
+/**
+ * @brief Calculates the network's correction value to the linear score from an accumulator
+ *
+ * @param accumulator The accumulator of the position
+ * @return The correction from White's point of view, 0 if no network is loaded
+ */
+int networkScore(const Accumulator &accumulator);
 
 /**
  * @brief Calculates the network's correction value to the linear score

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/Position.hpp"
+#include "engine/Network.hpp"
 #include <array>
 
 constexpr int WIN = 30000;
@@ -38,10 +39,20 @@ extern const Weights defaultWeights;
 Features computeFeatures(const Position &position);
 
 /**
+ * @brief Calculates the linear part of the score without the network
+ *
+ * @param position The position
+ * @param weights The weight of each feature
+ * @return The score from White's point of view
+ */
+int linearScore(const Position &position, const Weights &weights = defaultWeights);
+
+/**
  * @brief Scores a position from the side to move's point of view
  *
  * @param position The position
  * @param weights The weight of each feature
+ * @param accumulator The network's hidden layer of the position, nullptr to calculate it from scratch. Ignored if no network is loaded
  * @return The score, positive if it's good for the side to move
  */
-int evaluate(const Position &position, const Weights &weights = defaultWeights);
+int evaluate(const Position &position, const Weights &weights = defaultWeights, const Accumulator *accumulator = nullptr);
