@@ -2,6 +2,7 @@
 #include "engine/Evaluation.hpp"
 #include "engine/TranspositionTable.hpp"
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <cstdlib>
 #include <sched.h>
@@ -79,6 +80,20 @@ Bound boundOf(int score, int alpha, int beta) {
     return Bound::Exact;
 }
 
+// Move order
+constexpr int FIRST_MOVE_ORDER = 1 << 30;
+constexpr int WIN_ORDER = 1 << 29;
+constexpr int CAPTURE_ORDER = 1 << 28;
+constexpr int KILLER_ORDER = 1 << 27;
+constexpr int MAX_HISTORY = 1 << 20;
+
+struct Child {
+    Move move;
+    Position position;
+    int captured;
+    int order;
+};
+
 class Searcher {
 private:
     Clock::time_point deadline;
@@ -87,6 +102,8 @@ private:
     std::vector<uint64_t> path;
     bool useNetwork = isNetworkLoaded();
     std::vector<Accumulator> accumulators;
+    std::vector<std::array<Move, 2>> killers;
+    std::vector<int> cutoffHistory = std::vector<int>(2 * 81 * 81);
 
 public:
     bool canStop = false;
@@ -94,12 +111,13 @@ public:
     Move rootBest{};
 
     /**
-     * @brief Prepares the accumulators for a search of a position
+     * @brief Prepares the accumulators and the killers for a search of a position
      *
      * @param root The position to search
      * @param maxDepth The maximum depth of the search
      */
-    void startAccumulators(const Position &root, int maxDepth) {
+    void start(const Position &root, int maxDepth) {
+        killers.assign(static_cast<size_t>(maxDepth) + 1, {});
         if (!useNetwork)
             return;
         accumulators.resize(static_cast<size_t>(maxDepth) + 1);
@@ -148,16 +166,16 @@ public:
         if (depth == 0)
             return evaluate(position, defaultWeights, useNetwork ? &accumulators[ply] : nullptr);
 
-        const auto first = std::find(moves.begin(), moves.end(), firstMove);
-        if (first != moves.end())
-            std::iter_swap(moves.begin(), first); // Swap the "firstMove" to the front, so it's searched first
+        std::vector<Child> children = makeChildren(position, moves, ply, firstMove);
 
         int best = -WIN - 1; // ! The worst possible score for the side to move (like -inf in minimax)
-                             // ! perché non direttamente -WIN
         Move bestMove{};
-        for (const Move &move : moves) {
-            Position child = position;
-            const bool captured = child.apply(move) > 0;
+        for (size_t i = 0; i < children.size(); i++) {
+            const auto next = children.begin() + static_cast<std::ptrdiff_t>(i);
+            std::iter_swap(next, std::max_element(next, children.end(), [](const Child &a, const Child &b) { return a.order < b.order; }));
+            const Move &move = next->move;
+            const Position &child = next->position;
+            const bool captured = next->captured > 0;
             const size_t childEpoch = captured ? path.size() : epochStart; // ?
 
             int score;
@@ -180,8 +198,11 @@ public:
                     rootBest = move;
             }
             alpha = std::max(alpha, best);
-            if (alpha >= beta)
+            if (alpha >= beta) {
+                if (!captured)
+                    rememberCutoff(position.sideToMove, move, depth, ply);
                 break;
+            }
         }
 
         table.store(position.hash, bestMove, toTable(best, ply), depth, boundOf(best, originalAlpha, beta));
@@ -189,6 +210,70 @@ public:
     }
 
 private:
+    /**
+     * @brief Finds the history of a move
+     *
+     * @param side The side that plays the move
+     * @param move The move
+     * @return The history score
+     */
+    int &historyOf(Side side, const Move &move) {
+        const int from = move.fromRow * 9 + move.fromCol;
+        const int to = move.toRow * 9 + move.toCol;
+        return cutoffHistory[static_cast<size_t>((static_cast<int>(side) * 81 + from) * 81 + to)];
+    }
+
+    /**
+     * @brief Plays every move and gives it its order
+     *
+     * @param position The position before the moves
+     * @param moves The legal moves
+     * @param ply The distance from the root
+     * @param firstMove The move to search first
+     * @return The moves with their positions
+     */
+    std::vector<Child> makeChildren(const Position &position, const std::vector<Move> &moves, int ply, Move firstMove) {
+        const auto &killer = killers[static_cast<size_t>(ply)];
+        std::vector<Child> children;
+        children.reserve(moves.size());
+        for (const Move &move : moves) {
+            Child child{move, position, 0, 0};
+            child.captured = child.position.apply(move);
+            if (move == firstMove)
+                child.order = FIRST_MOVE_ORDER;
+            else if (child.position.outcome == Outcome::WhiteWins || child.position.outcome == Outcome::BlackWins)
+                child.order = WIN_ORDER;
+            else if (child.captured > 0)
+                child.order = CAPTURE_ORDER + child.captured;
+            else if (move == killer[0])
+                child.order = KILLER_ORDER + 1;
+            else if (move == killer[1])
+                child.order = KILLER_ORDER;
+            else
+                child.order = historyOf(position.sideToMove, move);
+            children.push_back(child);
+        }
+        return children;
+    }
+
+    /**
+     * @brief Remembers a quiet move that caused a cutoff
+     *
+     * @param side The side that played the move
+     * @param move The move
+     * @param depth The depth left at the node
+     * @param ply The distance from the root
+     */
+    void rememberCutoff(Side side, const Move &move, int depth, int ply) {
+        auto &killer = killers[static_cast<size_t>(ply)];
+        if (killer[0] != move) {
+            killer[1] = killer[0];
+            killer[0] = move;
+        }
+        int &score = historyOf(side, move);
+        score = std::min(score + depth * depth, MAX_HISTORY);
+    }
+
     /**
      * @brief Checks whether a position is a draw by repetition
      *
@@ -215,7 +300,7 @@ private:
  */
 SearchResult iterativeDeepening(Searcher &searcher, const Position &position, int firstDepth, int maxDepth, Clock::time_point deadline) {
     SearchResult result;
-    searcher.startAccumulators(position, maxDepth);
+    searcher.start(position, maxDepth);
     for (int depth = firstDepth; depth <= maxDepth; depth++) {
         searcher.canStop = depth > 1;
         int score;

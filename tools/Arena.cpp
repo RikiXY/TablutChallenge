@@ -284,6 +284,8 @@ int main(int argc, char *argv[]) {
                 const double scoreABlack = 1 - aBlack.whiteScore;
 
                 const std::lock_guard lock(statsMutex);
+                if (stop)
+                    return;
                 stats.addGame(scoreAWhite, aWhite.reachedMaxPlies);
                 stats.addGame(scoreABlack, aBlack.reachedMaxPlies);
                 stats.pairCounts[static_cast<int>(std::lround((scoreAWhite + scoreABlack) * 2))]++; // (scoreAWhite + scoreABlack) * 2 gets the bucket index: 0, 1, 2, 3, 4
