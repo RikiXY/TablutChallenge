@@ -13,3 +13,5 @@ compile_commands.json
 # VS Code local settings (optional)
 /.vscode/
 
+# Python environment of the trainer
+.venv/

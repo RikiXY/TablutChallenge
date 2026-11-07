@@ -1,4 +1,5 @@
 #include "engine/Evaluation.hpp"
+#include "engine/Network.hpp"
 #include <cstdlib>
 
 const Weights defaultWeights = {
@@ -150,5 +151,6 @@ int evaluate(const Position &position, const Weights &weights) {
     int whiteScore = 0;
     for (int i = 0; i < FeatureCount; i++)
         whiteScore += weights[i] * features[i];
+    whiteScore += networkScore(position);
     return position.sideToMove == Side::White ? whiteScore : -whiteScore;
 }

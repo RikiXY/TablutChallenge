@@ -43,3 +43,14 @@ Fits the evaluation weights to the results of arena games:
 ./build/arena -a build/player -b build/player -ms 50 -c 8 -pairs 5000 -elo0 0 -elo1 0 -games logs/games.txt
 ./build/texel logs/games.txt 3000
 ```
+## Evaluation network
+An NNUE adds a correction to the linear score. It's off unless `TABLUT_NNUE` points to a network file:
+```sh
+TABLUT_NNUE=net.nnue ./build/player WHITE 60 127.0.0.1
+```
+To train one from arena games:
+```sh
+./build/texel logs/games.txt dump 4 > logs/positions.txt
+cd tools/train && uv run train.py ../../logs/positions.txt ../../logs/net.nnue --lam 0.5
+```
+If the depth shouldn't be used, use `--lam 0` (game results only). With `TABLUT_NNUE` set, the labels are searched with that network.

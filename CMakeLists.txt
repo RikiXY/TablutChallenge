@@ -25,6 +25,7 @@ add_library(tablut STATIC
 
     # Engine
     src/engine/Evaluation.cpp
+    src/engine/Network.cpp
     src/engine/Search.cpp
     src/engine/TranspositionTable.cpp
 

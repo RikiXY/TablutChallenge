@@ -2,6 +2,7 @@
 #include "connections/ServerConnector.hpp"
 #include "core/Game.hpp"
 #include "core/Translator.hpp"
+#include "engine/Network.hpp"
 #include "engine/Search.hpp"
 #include <algorithm>
 #include <chrono>
@@ -15,6 +16,7 @@
 // ./build/player WHITE 60 127.0.0.1 -n player1 -m auto
 // ./build/player BLACK 60 127.0.0.1 -n player2 -m auto
 // ./build/player think 100 e3d3 a4b4
+// TABLUT_NNUE=net.nnue ./build/player (...) adds the NNUE to the evaluation
 
 namespace {
 
@@ -57,6 +59,7 @@ void think(int argc, char *argv[]) {
  */
 int main(int argc, char *argv[]) {
     try {
+        loadNetworkFromEnvironment();
         if (argc >= 3 && std::string_view(argv[1]) == "think") {
             think(argc, argv);
             return 0;
