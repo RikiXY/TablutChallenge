@@ -151,10 +151,11 @@ public:
             throw TimeUp{};
 
         const int originalAlpha = alpha;
+        const bool pvNode = beta - alpha > 1;
         const auto entry = depth > 0 && ply > 0 ? table.probe(position.hash) : std::nullopt;
         if (entry) {
             const int score = fromTable(entry->score, ply);
-            if (entry->depth >= depth && settles(entry->bound, score, alpha, beta))
+            if (!pvNode && entry->depth >= depth && settles(entry->bound, score, alpha, beta))
                 return score;
             firstMove = entry->move();
         }
@@ -187,7 +188,13 @@ public:
                 path.push_back(child.hash);
                 if (useNetwork)
                     accumulators[ply + 1] = updateAccumulator(accumulators[ply], position, child);
-                score = -negamax(child, depth - 1, -beta, -alpha, ply + 1, childEpoch, Move{});
+                if (i == 0)
+                    score = -negamax(child, depth - 1, -beta, -alpha, ply + 1, childEpoch, Move{});
+                else {
+                    score = -negamax(child, depth - 1, -alpha - 1, -alpha, ply + 1, childEpoch, Move{});
+                    if (alpha < score && score < beta)
+                        score = -negamax(child, depth - 1, -beta, -alpha, ply + 1, childEpoch, Move{});
+                }
                 path.pop_back();
             }
 
@@ -288,6 +295,40 @@ private:
     }
 };
 
+constexpr int ASPIRATION_DEPTH = 4;
+constexpr int ASPIRATION_WINDOW = 30;
+
+/**
+ * @brief Searches the root with a narrow window around the previous score, widening it until the score falls inside
+ *
+ * @param searcher The searcher to use
+ * @param position The position to search
+ * @param depth The depth to search
+ * @param previous The result of the previous depth
+ * @return The exact score of the position
+ */
+int aspirationSearch(Searcher &searcher, const Position &position, int depth, const SearchResult &previous) {
+    int alpha = -WIN - 1;
+    int beta = WIN + 1;
+    int window = ASPIRATION_WINDOW;
+    if (depth >= ASPIRATION_DEPTH && previous.depth > 0 && std::abs(previous.score) < WIN_BOUND) {
+        alpha = previous.score - window;
+        beta = previous.score + window;
+    }
+    Move firstMove = previous.bestMove;
+    while (true) {
+        const int score = searcher.negamax(position, depth, alpha, beta, 0, 0, firstMove);
+        if (score <= alpha)
+            alpha = std::max(score - window, -WIN - 1);
+        else if (score >= beta)
+            beta = std::min(score + window, WIN + 1);
+        else
+            return score;
+        firstMove = searcher.rootBest;
+        window *= 2;
+    }
+}
+
 /**
  * @brief Iterative deepening until the deadline, maxDepth or a forced win or loss
  *
@@ -305,7 +346,7 @@ SearchResult iterativeDeepening(Searcher &searcher, const Position &position, in
         searcher.canStop = depth > 1;
         int score;
         try {
-            score = searcher.negamax(position, depth, -WIN - 1, WIN + 1, 0, 0, result.bestMove);
+            score = aspirationSearch(searcher, position, depth, result);
         } catch (const TimeUp &) {
             break;
         }
