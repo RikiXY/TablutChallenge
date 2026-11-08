@@ -61,3 +61,7 @@ const Child &selectNext(std::vector<Child> &children, size_t index) {
     std::iter_swap(next, std::max_element(next, children.end(), [](const Child &a, const Child &b) { return a.order < b.order; }));
     return *next;
 }
+
+bool isHistoryMove(const Child &child) {
+    return child.order < KILLER_ORDER;
+}

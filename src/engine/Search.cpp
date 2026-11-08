@@ -4,6 +4,7 @@
 #include "engine/TranspositionTable.hpp"
 #include <algorithm>
 #include <atomic>
+#include <cmath>
 #include <cstdlib>
 #include <sched.h>
 #include <thread>
@@ -17,10 +18,14 @@ struct TimeUp {};
 
 TranspositionTable table(64);
 
+constexpr double LMR_DIVISOR = 150;
+constexpr int LMP_FACTOR = 3;
+
 class Searcher {
 private:
     Clock::time_point deadline;
     const std::atomic<bool> &stop;
+    bool exact;
     int allowedRepetitions;
     std::vector<uint64_t> path;
     bool useNetwork = isNetworkLoaded();
@@ -50,9 +55,10 @@ public:
      * @param searchDeadline When the search has to stop
      * @param stopSignal Becomes true when the search has to stop right away
      * @param history The game history, where the repetition path starts
+     * @param exactSearch true to search every move at full depth
      */
-    Searcher(Clock::time_point searchDeadline, const std::atomic<bool> &stopSignal, const GameHistory &history)
-        : deadline(searchDeadline), stop(stopSignal), allowedRepetitions(history.allowedRepetitions), path(history.sinceLastCapture) {}
+    Searcher(Clock::time_point searchDeadline, const std::atomic<bool> &stopSignal, const GameHistory &history, bool exactSearch)
+        : deadline(searchDeadline), stop(stopSignal), exact(exactSearch), allowedRepetitions(history.allowedRepetitions), path(history.sinceLastCapture) {}
 
     /**
      * @brief Alpha-beta search of a position. Throws TimeUp when the deadline is reached
@@ -99,7 +105,16 @@ public:
             const Move &move = next.move;
             const Position &child = next.position;
             const bool captured = next.captured > 0;
-            const size_t childEpoch = captured ? path.size() : epochStart; // ?
+            const size_t childEpoch = captured ? path.size() : epochStart;
+
+            const bool nearLeaves = !exact && !pvNode && ply > 0 && depth <= 3;
+            const bool triedEnough = i >= static_cast<size_t>(LMP_FACTOR * depth * depth);
+            const bool notLosing = best > -WIN_BOUND;
+            const bool lateQuiet = isHistoryMove(next) && !isKingMove(next);
+            if (nearLeaves && triedEnough && notLosing && lateQuiet) {
+                keepOnlyKingMoves(children, i + 1);
+                continue;
+            }
 
             int score;
             if (child.outcome == Outcome::WhiteWins || child.outcome == Outcome::BlackWins)
@@ -113,7 +128,14 @@ public:
                 if (i == 0)
                     score = -negamax(child, depth - 1, -beta, -alpha, ply + 1, childEpoch, Move{});
                 else {
-                    score = -negamax(child, depth - 1, -alpha - 1, -alpha, ply + 1, childEpoch, Move{});
+                    int reduction = 0;
+                    // Reduce only if there are enough plies left to search, the move is quiet and late enough in the ordering
+                    // reduction = log(depth) * log(index) * 100 / LMR_DIVISOR, clamped between 1 and depth - 2
+                    if (!exact && depth >= 3 && i >= 4 && isHistoryMove(next))
+                        reduction = std::clamp(static_cast<int>(std::log(depth) * std::log(static_cast<double>(i)) * 100 / LMR_DIVISOR), 1, depth - 2);
+                    score = -negamax(child, depth - 1 - reduction, -alpha - 1, -alpha, ply + 1, childEpoch, Move{});
+                    if (reduction > 0 && score > alpha)
+                        score = -negamax(child, depth - 1, -alpha - 1, -alpha, ply + 1, childEpoch, Move{});
                     if (alpha < score && score < beta)
                         score = -negamax(child, depth - 1, -beta, -alpha, ply + 1, childEpoch, Move{});
                 }
@@ -139,6 +161,28 @@ public:
     }
 
 private:
+    /**
+     * @brief Checks whether a move is a king move
+     *
+     * @param child The child
+     * @return true if the king moved
+     */
+    static bool isKingMove(const Child &child) {
+        return child.position.board[child.move.toRow][child.move.toCol] == Piece::King;
+    }
+
+    /**
+     * @brief Removes the non-king moves from an index until the end
+     *
+     * @param children The children
+     * @param from The first child that can be removed
+     */
+    static void keepOnlyKingMoves(std::vector<Child> &children, size_t from) {
+        const auto first = children.begin() + static_cast<std::ptrdiff_t>(from);
+        const auto kept = std::remove_if(first, children.end(), [](const Child &child) { return !isKingMove(child); });
+        children.erase(kept, children.end());
+    }
+
     /**
      * @brief Checks whether a position is a draw by repetition
      *
@@ -222,18 +266,18 @@ SearchResult iterativeDeepening(Searcher &searcher, const Position &position, in
 
 } // namespace
 
-SearchResult search(const Position &position, const GameHistory &history, Clock::time_point deadline, int maxDepth, int threads) {
+SearchResult search(const Position &position, const GameHistory &history, Clock::time_point deadline, int maxDepth, int threads, bool exact) {
     table.newSearch();
     std::atomic<bool> stop = false;
 
     std::vector<Searcher> helpers;
     for (int i = 1; i < threads; i++)
-        helpers.emplace_back(deadline, stop, history);
+        helpers.emplace_back(deadline, stop, history, exact);
     std::vector<std::thread> workers;
     for (size_t i = 0; i < helpers.size(); i++)
         workers.emplace_back([&, i] { iterativeDeepening(helpers[i], position, 1 + static_cast<int>(i % 2), maxDepth, deadline); });
 
-    Searcher searcher(deadline, stop, history);
+    Searcher searcher(deadline, stop, history, exact);
     SearchResult result = iterativeDeepening(searcher, position, 1, maxDepth, deadline);
     result.nodes = searcher.nodes;
 

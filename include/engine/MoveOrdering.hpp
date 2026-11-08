@@ -64,3 +64,11 @@ public:
  * @return The child to search next
  */
 const Child &selectNext(std::vector<Child> &children, size_t index);
+
+/**
+ * @brief Checks whether a child is ordered only by its history
+ *
+ * @param child The child
+ * @return true if the child is ordered only by its history
+ */
+bool isHistoryMove(const Child &child);
