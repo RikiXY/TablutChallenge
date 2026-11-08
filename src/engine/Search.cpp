@@ -1,8 +1,8 @@
 #include "engine/Search.hpp"
 #include "engine/Evaluation.hpp"
+#include "engine/MoveOrdering.hpp"
 #include "engine/TranspositionTable.hpp"
 #include <algorithm>
-#include <array>
 #include <atomic>
 #include <cstdlib>
 #include <sched.h>
@@ -17,83 +17,6 @@ struct TimeUp {};
 
 TranspositionTable table(64);
 
-/**
- * @brief Converts a score to store it in the table (the table counts the plies from the node where the score was computed, not from the root)
- *
- * @param score The score
- * @param ply The distance of the node from the root
- * @return The score to store
- */
-int toTable(int score, int ply) {
-    if (std::abs(score) <= WIN_BOUND) // Not a win or a loss
-        return score;
-    return score > 0 ? score + ply : score - ply;
-}
-
-/**
- * @brief Converts a score read from the table back to counting the plies from the root
- *
- * @param score The stored score
- * @param ply The distance of the node from the root
- * @return The score
- */
-int fromTable(int score, int ply) {
-    return toTable(score, -ply);
-}
-
-/**
- * @brief Checks whether a table result is enough to skip the search
- *
- * @param bound What the stored score means
- * @param score The stored score
- * @param alpha The lower end of the search window
- * @param beta The upper end of the search window
- * @return true for an exact score, a lower bound >= beta or an upper bound <= alpha
- */
-bool settles(Bound bound, int score, int alpha, int beta) {
-    switch (bound) {
-    case Bound::Exact:
-        return true;
-    case Bound::Lower:
-        return score >= beta;
-    case Bound::Upper:
-        return score <= alpha;
-    case Bound::None:
-        break;
-    }
-    return false;
-}
-
-/**
- * @brief Calculates the bound of a score with respect to the search window
- *
- * @param score The score returned
- * @param alpha The lower end of the search window before the search
- * @param beta The upper end of the search window
- * @return Upper if no move beat alpha, Lower if there was a cutoff, Exact otherwise
- */
-Bound boundOf(int score, int alpha, int beta) {
-    if (score <= alpha)
-        return Bound::Upper;
-    if (score >= beta)
-        return Bound::Lower;
-    return Bound::Exact;
-}
-
-// Move order
-constexpr int FIRST_MOVE_ORDER = 1 << 30;
-constexpr int WIN_ORDER = 1 << 29;
-constexpr int CAPTURE_ORDER = 1 << 28;
-constexpr int KILLER_ORDER = 1 << 27;
-constexpr int MAX_HISTORY = 1 << 20;
-
-struct Child {
-    Move move;
-    Position position;
-    int captured;
-    int order;
-};
-
 class Searcher {
 private:
     Clock::time_point deadline;
@@ -102,8 +25,7 @@ private:
     std::vector<uint64_t> path;
     bool useNetwork = isNetworkLoaded();
     std::vector<Accumulator> accumulators;
-    std::vector<std::array<Move, 2>> killers;
-    std::vector<int> cutoffHistory = std::vector<int>(2 * 81 * 81);
+    MoveOrdering ordering;
 
 public:
     bool canStop = false;
@@ -117,7 +39,7 @@ public:
      * @param maxDepth The maximum depth of the search
      */
     void start(const Position &root, int maxDepth) {
-        killers.assign(static_cast<size_t>(maxDepth) + 1, {});
+        ordering.start(maxDepth);
         if (!useNetwork)
             return;
         accumulators.resize(static_cast<size_t>(maxDepth) + 1);
@@ -167,16 +89,15 @@ public:
         if (depth == 0)
             return evaluate(position, defaultWeights, useNetwork ? &accumulators[ply] : nullptr);
 
-        std::vector<Child> children = makeChildren(position, moves, ply, firstMove);
+        std::vector<Child> children = ordering.makeChildren(position, moves, ply, firstMove);
 
         int best = -WIN - 1; // ! The worst possible score for the side to move (like -inf in minimax)
         Move bestMove{};
         for (size_t i = 0; i < children.size(); i++) {
-            const auto next = children.begin() + static_cast<std::ptrdiff_t>(i);
-            std::iter_swap(next, std::max_element(next, children.end(), [](const Child &a, const Child &b) { return a.order < b.order; }));
-            const Move &move = next->move;
-            const Position &child = next->position;
-            const bool captured = next->captured > 0;
+            const Child &next = selectNext(children, i);
+            const Move &move = next.move;
+            const Position &child = next.position;
+            const bool captured = next.captured > 0;
             const size_t childEpoch = captured ? path.size() : epochStart; // ?
 
             int score;
@@ -207,7 +128,7 @@ public:
             alpha = std::max(alpha, best);
             if (alpha >= beta) {
                 if (!captured)
-                    rememberCutoff(position.sideToMove, move, depth, ply);
+                    ordering.rememberCutoff(position.sideToMove, move, depth, ply);
                 break;
             }
         }
@@ -217,70 +138,6 @@ public:
     }
 
 private:
-    /**
-     * @brief Finds the history of a move
-     *
-     * @param side The side that plays the move
-     * @param move The move
-     * @return The history score
-     */
-    int &historyOf(Side side, const Move &move) {
-        const int from = move.fromRow * 9 + move.fromCol;
-        const int to = move.toRow * 9 + move.toCol;
-        return cutoffHistory[static_cast<size_t>((static_cast<int>(side) * 81 + from) * 81 + to)];
-    }
-
-    /**
-     * @brief Plays every move and gives it its order
-     *
-     * @param position The position before the moves
-     * @param moves The legal moves
-     * @param ply The distance from the root
-     * @param firstMove The move to search first
-     * @return The moves with their positions
-     */
-    std::vector<Child> makeChildren(const Position &position, const std::vector<Move> &moves, int ply, Move firstMove) {
-        const auto &killer = killers[static_cast<size_t>(ply)];
-        std::vector<Child> children;
-        children.reserve(moves.size());
-        for (const Move &move : moves) {
-            Child child{move, position, 0, 0};
-            child.captured = child.position.apply(move);
-            if (move == firstMove)
-                child.order = FIRST_MOVE_ORDER;
-            else if (child.position.outcome == Outcome::WhiteWins || child.position.outcome == Outcome::BlackWins)
-                child.order = WIN_ORDER;
-            else if (child.captured > 0)
-                child.order = CAPTURE_ORDER + child.captured;
-            else if (move == killer[0])
-                child.order = KILLER_ORDER + 1;
-            else if (move == killer[1])
-                child.order = KILLER_ORDER;
-            else
-                child.order = historyOf(position.sideToMove, move);
-            children.push_back(child);
-        }
-        return children;
-    }
-
-    /**
-     * @brief Remembers a quiet move that caused a cutoff
-     *
-     * @param side The side that played the move
-     * @param move The move
-     * @param depth The depth left at the node
-     * @param ply The distance from the root
-     */
-    void rememberCutoff(Side side, const Move &move, int depth, int ply) {
-        auto &killer = killers[static_cast<size_t>(ply)];
-        if (killer[0] != move) {
-            killer[1] = killer[0];
-            killer[0] = move;
-        }
-        int &score = historyOf(side, move);
-        score = std::min(score + depth * depth, MAX_HISTORY);
-    }
-
     /**
      * @brief Checks whether a position is a draw by repetition
      *

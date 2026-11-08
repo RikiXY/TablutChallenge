@@ -1,5 +1,7 @@
 #include "engine/TranspositionTable.hpp"
+#include "engine/Evaluation.hpp"
 #include <atomic>
+#include <cstdlib>
 
 namespace {
 
@@ -97,4 +99,36 @@ void TranspositionTable::store(uint64_t key, const Move &move, int score, int de
     const uint64_t data = pack(entry);
     save(slot.data, data);
     save(slot.keyXorData, key ^ data);
+}
+
+int toTable(int score, int ply) {
+    if (std::abs(score) <= WIN_BOUND) // Not a win or a loss
+        return score;
+    return score > 0 ? score + ply : score - ply;
+}
+
+int fromTable(int score, int ply) {
+    return toTable(score, -ply);
+}
+
+bool settles(Bound bound, int score, int alpha, int beta) {
+    switch (bound) {
+    case Bound::Exact:
+        return true;
+    case Bound::Lower:
+        return score >= beta;
+    case Bound::Upper:
+        return score <= alpha;
+    case Bound::None:
+        break;
+    }
+    return false;
+}
+
+Bound boundOf(int score, int alpha, int beta) {
+    if (score <= alpha)
+        return Bound::Upper;
+    if (score >= beta)
+        return Bound::Lower;
+    return Bound::Exact;
 }

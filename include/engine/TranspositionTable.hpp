@@ -77,3 +77,42 @@ public:
      */
     void store(uint64_t key, const Move &move, int score, int depth, Bound bound);
 };
+
+/**
+ * @brief Converts a score to store it in the table (the table counts the plies from the node where the score was computed, not from the root)
+ *
+ * @param score The score
+ * @param ply The distance of the node from the root
+ * @return The score to store
+ */
+int toTable(int score, int ply);
+
+/**
+ * @brief Converts a score read from the table back to counting the plies from the root
+ *
+ * @param score The stored score
+ * @param ply The distance of the node from the root
+ * @return The score
+ */
+int fromTable(int score, int ply);
+
+/**
+ * @brief Checks whether a table result is enough to skip the search
+ *
+ * @param bound What the stored score means
+ * @param score The stored score
+ * @param alpha The lower end of the search window
+ * @param beta The upper end of the search window
+ * @return true for an exact score, a lower bound >= beta or an upper bound <= alpha
+ */
+bool settles(Bound bound, int score, int alpha, int beta);
+
+/**
+ * @brief Calculates the bound of a score with respect to the search window
+ *
+ * @param score The score returned
+ * @param alpha The lower end of the search window before the search
+ * @param beta The upper end of the search window
+ * @return Upper if no move beat alpha, Lower if there was a cutoff, Exact otherwise
+ */
+Bound boundOf(int score, int alpha, int beta);
