@@ -74,9 +74,7 @@ public:
      */
     int negamax(const Position &position, int depth, int alpha, int beta, int ply, size_t epochStart, Move firstMove) {
         nodes++;
-        // memory_order_relaxed is enough to just read the value
-        if (stop.load(std::memory_order_relaxed) || (canStop && nodes % 1024 == 0 && Clock::now() >= deadline))
-            throw TimeUp{};
+        checkTime();
 
         const int originalAlpha = alpha;
         const bool pvNode = beta - alpha > 1;
@@ -98,6 +96,9 @@ public:
 
         std::vector<Child> children = ordering.makeChildren(position, moves, ply, firstMove);
 
+        const bool canSkipLate = !exact && !pvNode && ply > 0 && depth <= 3;
+        const size_t lmpMoves = static_cast<size_t>(LMP_FACTOR * depth * depth);
+
         int best = -WIN - 1; // ! The worst possible score for the side to move (like -inf in minimax)
         Move bestMove{};
         for (size_t i = 0; i < children.size(); i++) {
@@ -107,14 +108,15 @@ public:
             const bool captured = next.captured > 0;
             const size_t childEpoch = captured ? path.size() : epochStart;
 
-            const bool nearLeaves = !exact && !pvNode && ply > 0 && depth <= 3;
-            const bool triedEnough = i >= static_cast<size_t>(LMP_FACTOR * depth * depth);
             const bool notLosing = best > -WIN_BOUND;
             const bool lateQuiet = isHistoryMove(next) && !isKingMove(next);
-            if (nearLeaves && triedEnough && notLosing && lateQuiet) {
+            if (canSkipLate && i >= lmpMoves && notLosing && lateQuiet) {
                 keepOnlyKingMoves(children, i + 1);
                 continue;
             }
+
+            // Searches the child and returns its score from this side's point of view with the window from tis side's point of view
+            auto searchChild = [&](int childDepth, int low, int high) { return -negamax(child, childDepth, -high, -low, ply + 1, childEpoch, Move{}); };
 
             int score;
             if (child.outcome == Outcome::WhiteWins || child.outcome == Outcome::BlackWins)
@@ -126,18 +128,14 @@ public:
                 if (useNetwork)
                     accumulators[ply + 1] = updateAccumulator(accumulators[ply], position, child);
                 if (i == 0)
-                    score = -negamax(child, depth - 1, -beta, -alpha, ply + 1, childEpoch, Move{});
+                    score = searchChild(depth - 1, alpha, beta);
                 else {
-                    int reduction = 0;
-                    // Reduce only if there are enough plies left to search, the move is quiet and late enough in the ordering
-                    // reduction = log(depth) * log(index) * 100 / LMR_DIVISOR, clamped between 1 and depth - 2
-                    if (!exact && depth >= 3 && i >= 4 && isHistoryMove(next))
-                        reduction = std::clamp(static_cast<int>(std::log(depth) * std::log(static_cast<double>(i)) * 100 / LMR_DIVISOR), 1, depth - 2);
-                    score = -negamax(child, depth - 1 - reduction, -alpha - 1, -alpha, ply + 1, childEpoch, Move{});
+                    const int reduction = lateMoveReduction(depth, i, next);
+                    score = searchChild(depth - 1 - reduction, alpha, alpha + 1); // Null window, maybe reduced
                     if (reduction > 0 && score > alpha)
-                        score = -negamax(child, depth - 1, -alpha - 1, -alpha, ply + 1, childEpoch, Move{});
+                        score = searchChild(depth - 1, alpha, alpha + 1); // Beat alpha while reduced so verify at full depth
                     if (alpha < score && score < beta)
-                        score = -negamax(child, depth - 1, -beta, -alpha, ply + 1, childEpoch, Move{});
+                        score = searchChild(depth - 1, alpha, beta); // Inside the window so calculate the exact value
                 }
                 path.pop_back();
             }
@@ -161,6 +159,29 @@ public:
     }
 
 private:
+    /**
+     * @brief Throws TimeUp if the search has to stop
+     */
+    void checkTime() const {
+        // memory_order_relaxed is enough to just read the value
+        if (stop.load(std::memory_order_relaxed) || (canStop && nodes % 1024 == 0 && Clock::now() >= deadline))
+            throw TimeUp{};
+    }
+
+    /**
+     * @brief Calculates how much to reduce a move
+     *
+     * @param depth The depth left at the node
+     * @param index The position of the move in the order
+     * @param child The move
+     * @return log(depth) * log(index) * 100 / LMR_DIVISOR clamped between 1 and depth - 2, 0 if the move isn't reduced
+     */
+    int lateMoveReduction(int depth, size_t index, const Child &child) const {
+        if (exact || depth < 3 || index < 4 || !isHistoryMove(child))
+            return 0;
+        return std::clamp(static_cast<int>(std::log(depth) * std::log(static_cast<double>(index)) * 100 / LMR_DIVISOR), 1, depth - 2);
+    }
+
     /**
      * @brief Checks whether a move is a king move
      *
