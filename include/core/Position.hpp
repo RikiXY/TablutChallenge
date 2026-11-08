@@ -32,6 +32,13 @@ struct Position {
     std::vector<Move> calculateLegalMoves() const;
 
     /**
+     * @brief Checks whether the side to move has at least one legal move
+     *
+     * @return true if there is at least one legal move
+     */
+    bool hasLegalMove() const;
+
+    /**
      * @brief Plays a move: moves the piece, removes the captured pawns and updates the outcome, the side to move and the hash
      *
      * @param move The move to play (legal)

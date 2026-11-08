@@ -82,12 +82,13 @@ public:
             firstMove = entry->move();
         }
 
+        if (depth == 0 && position.hasLegalMove())
+            return evaluate(position, defaultWeights, useNetwork ? &accumulators[ply] : nullptr);
+
         std::vector<Move> moves = position.calculateLegalMoves(); // Generate all branches
         if (moves.empty())
             return -(WIN - ply); // The opponent already won because this side can't move
                                  // ! -ply indica che l'algoritmo preferisce perdere il più tardi possibile
-        if (depth == 0)
-            return evaluate(position, defaultWeights, useNetwork ? &accumulators[ply] : nullptr);
 
         std::vector<Child> children = ordering.makeChildren(position, moves, ply, firstMove);
 
@@ -119,11 +120,11 @@ public:
                 path.pop_back();
             }
 
+            if (ply == 0 && (i == 0 || score > alpha))
+                rootBest = move;
             if (score > best) {
                 best = score;
                 bestMove = move;
-                if (ply == 0)
-                    rootBest = move;
             }
             alpha = std::max(alpha, best);
             if (alpha >= beta) {
@@ -175,6 +176,7 @@ int aspirationSearch(Searcher &searcher, const Position &position, int depth, co
     Move firstMove = previous.bestMove;
     while (true) {
         const int score = searcher.negamax(position, depth, alpha, beta, 0, 0, firstMove);
+        window *= 2;
         if (score <= alpha)
             alpha = std::max(score - window, -WIN - 1);
         else if (score >= beta)
@@ -182,7 +184,6 @@ int aspirationSearch(Searcher &searcher, const Position &position, int depth, co
         else
             return score;
         firstMove = searcher.rootBest;
-        window *= 2;
     }
 }
 
@@ -194,7 +195,7 @@ int aspirationSearch(Searcher &searcher, const Position &position, int depth, co
  * @param firstDepth The depth to start from
  * @param maxDepth The maximum depth
  * @param deadline When to stop
- * @return The best move of the last finished depth, with its score and the depth
+ * @return The best move, with the score and the depth of the last finished depth
  */
 SearchResult iterativeDeepening(Searcher &searcher, const Position &position, int firstDepth, int maxDepth, Clock::time_point deadline) {
     SearchResult result;
@@ -205,6 +206,8 @@ SearchResult iterativeDeepening(Searcher &searcher, const Position &position, in
         try {
             score = aspirationSearch(searcher, position, depth, result);
         } catch (const TimeUp &) {
+            if (searcher.rootBest != Move{})
+                result.bestMove = searcher.rootBest;
             break;
         }
         result.bestMove = searcher.rootBest;

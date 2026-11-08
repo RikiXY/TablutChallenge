@@ -51,6 +51,19 @@ constexpr bool isThrone(int row, int col) {
  */
 bool isEdge(int row, int col);
 
+// The camp of each cell: 0 top, 1 bottom, 2 left, 3 right, -1 not a camp
+constexpr int8_t CAMPS[9][9] = {
+    {-1, -1, -1, 0, 0, 0, -1, -1, -1},
+    {-1, -1, -1, -1, 0, -1, -1, -1, -1},
+    {-1, -1, -1, -1, -1, -1, -1, -1, -1},
+    {2, -1, -1, -1, -1, -1, -1, -1, 3},
+    {2, 2, -1, -1, -1, -1, -1, 3, 3},
+    {2, -1, -1, -1, -1, -1, -1, -1, 3},
+    {-1, -1, -1, -1, -1, -1, -1, -1, -1},
+    {-1, -1, -1, -1, 1, -1, -1, -1, -1},
+    {-1, -1, -1, 1, 1, 1, -1, -1, -1},
+};
+
 /**
  * @brief Tells which camp a cell belongs to
  *
@@ -58,7 +71,9 @@ bool isEdge(int row, int col);
  * @param col The column of the cell
  * @return 0 top, 1 bottom, 2 left, 3 right, -1 if the cell isn't a camp
  */
-int campOf(int row, int col);
+constexpr int campOf(int row, int col) {
+    return CAMPS[row][col];
+}
 
 /**
  * @brief Checks whether a cell is one of the 16 camp cells
@@ -67,7 +82,9 @@ int campOf(int row, int col);
  * @param col The column of the cell
  * @return true if it's a camp cell
  */
-bool isCamp(int row, int col);
+constexpr bool isCamp(int row, int col) {
+    return campOf(row, col) != -1;
+}
 
 /**
  * @brief Checks whether a cell is the middle cell of a camp (e1, e9, a5, i5)

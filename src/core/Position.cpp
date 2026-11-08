@@ -180,6 +180,27 @@ std::vector<Move> Position::calculateLegalMoves() const {
     return moves;
 }
 
+bool Position::hasLegalMove() const {
+    if (outcome != Outcome::Ongoing)
+        return false;
+
+    for (int row = 0; row < 9; row++) {
+        for (int col = 0; col < 9; col++) {
+            const Piece piece = board[row][col];
+            const bool belongsToCurrentSide = sideToMove == Side::White ? isWhitePiece(piece) : piece == Piece::Black;
+            if (!belongsToCurrentSide)
+                continue;
+            for (const auto &[dRow, dCol] : directions) {
+                const int toRow = row + dRow;
+                const int toCol = col + dCol;
+                if (isOnBoard(toRow, toCol) && board[toRow][toCol] == Piece::Empty && isLegal(row, col, toRow, toCol))
+                    return true;
+            }
+        }
+    }
+    return false;
+}
+
 int Position::apply(const Move &move) {
     // Apply the move to the board
     const Piece pieceToMove = board[move.fromRow][move.fromCol];
