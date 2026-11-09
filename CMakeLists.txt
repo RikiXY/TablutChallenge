@@ -46,6 +46,10 @@ target_include_directories(tablut PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
+# Link thread library
+find_package(Threads REQUIRED)
+target_link_libraries(tablut PRIVATE Threads::Threads)
+
 # Third-party headers with warnings hidden
 target_include_directories(tablut SYSTEM PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party
@@ -67,9 +71,8 @@ target_link_libraries(TablutChallenge PRIVATE tablut)
 set_target_properties(TablutChallenge PROPERTIES OUTPUT_NAME player)
 
 # Self-play arena
-find_package(Threads REQUIRED)
 add_executable(arena tools/Arena.cpp)
-target_link_libraries(arena PRIVATE tablut Threads::Threads)
+target_link_libraries(arena PRIVATE tablut)
 
 # Evaluation weight fitting
 add_executable(texel tools/Texel.cpp)
