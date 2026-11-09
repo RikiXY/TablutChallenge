@@ -2,6 +2,7 @@
 
 #include "core/Position.hpp"
 #include <string>
+#include <array>
 
 // Inputs: king square 0-80, white pawn squares 81-161, black pawn squares 162-242, White to move 243
 // Squares are row * 9 + col
@@ -10,14 +11,14 @@ constexpr int NETWORK_HIDDEN = 128;
 
 // 125956 bytes
 struct Network {
-    float inputWeights[NETWORK_INPUTS][NETWORK_HIDDEN];
-    float hiddenBiases[NETWORK_HIDDEN];
-    float outputWeights[NETWORK_HIDDEN];
+    std::array<std::array<float, NETWORK_HIDDEN>, NETWORK_INPUTS> inputWeights;
+    std::array<float, NETWORK_HIDDEN> hiddenBiases;
+    std::array<float, NETWORK_HIDDEN> outputWeights;
     float outputBias;
 };
 
 struct Accumulator {
-    float hidden[NETWORK_HIDDEN];
+    std::array<float, NETWORK_HIDDEN> hidden;
 };
 
 /**

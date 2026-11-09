@@ -34,7 +34,7 @@ int inputOf(Piece piece, int square) {
  * @param input The index of the input
  * @param sign 1 to add the row, -1 to subtract it
  */
-void addInput(float *hidden, int input, float sign = 1) {
+void addInput(std::array<float, NETWORK_HIDDEN> hidden, int input, float sign = 1) {
     for (int i = 0; i < NETWORK_HIDDEN; i++)
         hidden[i] += sign * network->inputWeights[input][i];
 }
@@ -62,7 +62,7 @@ bool isNetworkLoaded() {
 
 Accumulator makeAccumulator(const Position &position) {
     Accumulator accumulator;
-    std::copy(std::begin(network->hiddenBiases), std::end(network->hiddenBiases), accumulator.hidden);
+    accumulator.hidden = network->hiddenBiases;
     for (int square = 0; square < 81; square++) {
         const Piece piece = position.board[square / 9][square % 9];
         if (piece != Piece::Empty)
