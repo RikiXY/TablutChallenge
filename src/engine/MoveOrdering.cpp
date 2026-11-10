@@ -27,14 +27,13 @@ std::vector<Child> MoveOrdering::makeChildren(const Position &position, const st
     std::vector<Child> children;
     children.reserve(moves.size());
     for (const Move &move : moves) {
-        Child child{move, position, 0, 0};
-        child.captured = child.position.apply(move);
+        Child child{move, position.effects(move), 0};
         if (move == firstMove)
             child.order = FIRST_MOVE_ORDER;
-        else if (child.position.outcome == Outcome::WhiteWins || child.position.outcome == Outcome::BlackWins)
+        else if (child.effects.outcome != Outcome::Ongoing)
             child.order = WIN_ORDER;
-        else if (child.captured > 0)
-            child.order = CAPTURE_ORDER + child.captured;
+        else if (child.effects.captured > 0)
+            child.order = CAPTURE_ORDER + child.effects.captured;
         else if (move == killer[0])
             child.order = KILLER_ORDER + 1;
         else if (move == killer[1])

@@ -11,6 +11,12 @@ enum class Outcome : uint8_t { Ongoing,
                                BlackWins,
                                Draw };
 
+struct MoveEffects {
+    uint8_t capturedDirections = 0; // Bit d = 1 if the neighbour in directions[d] gets captured
+    int captured = 0;
+    Outcome outcome = Outcome::Ongoing;
+};
+
 struct Position {
     BoardMatrix board{};
     Side sideToMove = Side::White;
@@ -39,12 +45,36 @@ struct Position {
     bool hasLegalMove() const;
 
     /**
+     * @brief Generates only the legal moves that capture or win
+     *
+     * @return The moves that capture at least a pawn or end the game
+     */
+    std::vector<Move> calculateTacticalMoves() const;
+
+    /**
      * @brief Plays a move: moves the piece, removes the captured pawns and updates the outcome, the side to move and the hash
      *
      * @param move The move to play (legal)
      * @return How many pawns were captured
      */
     int apply(const Move &move);
+
+    /**
+     * @brief Calculates what a move would capture and whether it would end the game
+     *
+     * @param move The move (legal)
+     * @return The effects of the move
+     */
+    MoveEffects effects(const Move &move) const;
+
+    /**
+     * @brief Plays a move whose effects are already known
+     *
+     * @param move The move to play (legal)
+     * @param effects The effects of the move
+     * @return How many pawns were captured
+     */
+    int apply(const Move &move, const MoveEffects &effects);
 
     /**
      * @brief Recomputes the hash from scratch. Necessary after changing board or sideToMove by hand

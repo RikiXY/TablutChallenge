@@ -20,6 +20,7 @@ TranspositionTable table(64);
 
 constexpr double LMR_DIVISOR = 150;
 constexpr int LMP_FACTOR = 3;
+constexpr int QUIESCENCE_DEPTH = 4;
 
 class Searcher {
 private:
@@ -47,7 +48,7 @@ public:
         ordering.start(maxDepth);
         if (!useNetwork)
             return;
-        accumulators.resize(static_cast<size_t>(maxDepth) + 1);
+        accumulators.resize(static_cast<size_t>(maxDepth + QUIESCENCE_DEPTH) + 1);
         accumulators[0] = makeAccumulator(root);
     }
 
@@ -55,7 +56,7 @@ public:
      * @param searchDeadline When the search has to stop
      * @param stopSignal Becomes true when the search has to stop right away
      * @param history The game history, where the repetition path starts
-     * @param exactSearch true to search every move at full depth
+     * @param exactSearch true to search every move at full depth and completely
      */
     Searcher(Clock::time_point searchDeadline, const std::atomic<bool> &stopSignal, const GameHistory &history, bool exactSearch)
         : deadline(searchDeadline), stop(stopSignal), exact(exactSearch), allowedRepetitions(history.allowedRepetitions), path(history.sinceLastCapture) {}
@@ -86,8 +87,11 @@ public:
             firstMove = entry->move();
         }
 
-        if (depth == 0 && position.hasLegalMove())
-            return evaluate(position, defaultWeights, useNetwork ? &accumulators[ply] : nullptr);
+        if (depth == 0 && position.hasLegalMove()) {
+            if (exact)
+                return evaluate(position, defaultWeights, useNetwork ? &accumulators[ply] : nullptr);
+            return quiescence(position, alpha, beta, ply, QUIESCENCE_DEPTH);
+        }
 
         std::vector<Move> moves = position.calculateLegalMoves(); // Generate all branches
         if (moves.empty())
@@ -104,40 +108,44 @@ public:
         for (size_t i = 0; i < children.size(); i++) {
             const Child &next = selectNext(children, i);
             const Move &move = next.move;
-            const Position &child = next.position;
-            const bool captured = next.captured > 0;
-            const size_t childEpoch = captured ? path.size() : epochStart;
+            const bool captured = next.effects.captured > 0;
 
             const bool notLosing = best > -WIN_BOUND;
-            const bool lateQuiet = isHistoryMove(next) && !isKingMove(next);
+            const bool lateQuiet = isHistoryMove(next) && !isKingMove(position, next);
             if (canSkipLate && i >= lmpMoves && notLosing && lateQuiet) {
-                keepOnlyKingMoves(children, i + 1);
+                keepOnlyKingMoves(position, children, i + 1);
                 continue;
             }
 
-            // Searches the child and returns its score from this side's point of view with the window from tis side's point of view
-            auto searchChild = [&](int childDepth, int low, int high) { return -negamax(child, childDepth, -high, -low, ply + 1, childEpoch, Move{}); };
-
             int score;
-            if (child.outcome == Outcome::WhiteWins || child.outcome == Outcome::BlackWins)
+            if (next.effects.outcome != Outcome::Ongoing)
                 score = WIN - (ply + 1);
-            else if (isRepetition(child, childEpoch))
-                score = 0;
             else {
-                path.push_back(child.hash);
-                if (useNetwork)
-                    accumulators[ply + 1] = updateAccumulator(accumulators[ply], position, child);
-                if (i == 0)
-                    score = searchChild(depth - 1, alpha, beta);
+                Position child = position;
+                child.apply(move, next.effects);
+                const size_t childEpoch = captured ? path.size() : epochStart;
+
+                // Searches the child and returns its score from this side's point of view with the window from tis side's point of view
+                auto searchChild = [&](int childDepth, int low, int high) { return -negamax(child, childDepth, -high, -low, ply + 1, childEpoch, Move{}); };
+
+                if (isRepetition(child, childEpoch))
+                    score = 0;
                 else {
-                    const int reduction = lateMoveReduction(depth, i, next);
-                    score = searchChild(depth - 1 - reduction, alpha, alpha + 1); // Null window, maybe reduced
-                    if (reduction > 0 && score > alpha)
-                        score = searchChild(depth - 1, alpha, alpha + 1); // Beat alpha while reduced so verify at full depth
-                    if (alpha < score && score < beta)
-                        score = searchChild(depth - 1, alpha, beta); // Inside the window so calculate the exact value
+                    path.push_back(child.hash);
+                    if (useNetwork)
+                        accumulators[ply + 1] = updateAccumulator(accumulators[ply], position, child);
+                    if (i == 0)
+                        score = searchChild(depth - 1, alpha, beta);
+                    else {
+                        const int reduction = lateMoveReduction(depth, i, next);
+                        score = searchChild(depth - 1 - reduction, alpha, alpha + 1); // Null window, maybe reduced
+                        if (reduction > 0 && score > alpha)
+                            score = searchChild(depth - 1, alpha, alpha + 1); // Beat alpha while reduced so verify at full depth
+                        if (alpha < score && score < beta)
+                            score = searchChild(depth - 1, alpha, beta); // Inside the window so calculate the exact value
+                    }
+                    path.pop_back();
                 }
-                path.pop_back();
             }
 
             if (ply == 0 && (i == 0 || score > alpha))
@@ -159,6 +167,50 @@ public:
     }
 
 private:
+    /**
+     * @brief Searches only captures and wins after the normal depth
+     *
+     * @param position The position to search
+     * @param alpha The lower end of the search window
+     * @param beta The upper end of the search window
+     * @param ply The distance from the root
+     * @param depth How many plies of captures are left
+     * @return The score from the side to move's point of view
+     */
+    int quiescence(const Position &position, int alpha, int beta, int ply, int depth) {
+        const std::vector<Move> moves = position.calculateTacticalMoves();
+        for (const Move &move : moves)
+            if (position.effects(move).outcome != Outcome::Ongoing)
+                return WIN - (ply + 1);
+
+        int best = evaluate(position, defaultWeights, useNetwork ? &accumulators[ply] : nullptr);
+        if (depth == 0 || best >= beta)
+            return best;
+        alpha = std::max(alpha, best);
+
+        for (const Move &move : moves) {
+            Position child = position;
+            child.apply(move);
+            nodes++;
+            checkTime();
+
+            int score;
+            if (!child.hasLegalMove())
+                score = WIN - (ply + 1);
+            else {
+                if (useNetwork)
+                    accumulators[ply + 1] = updateAccumulator(accumulators[ply], position, child);
+                score = -quiescence(child, -beta, -alpha, ply + 1, depth - 1);
+            }
+
+            best = std::max(best, score);
+            alpha = std::max(alpha, best);
+            if (alpha >= beta)
+                break;
+        }
+        return best;
+    }
+
     /**
      * @brief Throws TimeUp if the search has to stop
      */
@@ -185,22 +237,24 @@ private:
     /**
      * @brief Checks whether a move is a king move
      *
+     * @param position The position before the move
      * @param child The child
-     * @return true if the king moved
+     * @return true if the king moves
      */
-    static bool isKingMove(const Child &child) {
-        return child.position.board[child.move.toRow][child.move.toCol] == Piece::King;
+    static bool isKingMove(const Position &position, const Child &child) {
+        return position.board[child.move.fromRow][child.move.fromCol] == Piece::King;
     }
 
     /**
      * @brief Removes the non-king moves from an index until the end
      *
+     * @param position The position before the moves
      * @param children The children
      * @param from The first child that can be removed
      */
-    static void keepOnlyKingMoves(std::vector<Child> &children, size_t from) {
+    static void keepOnlyKingMoves(const Position &position, std::vector<Child> &children, size_t from) {
         const auto first = children.begin() + static_cast<std::ptrdiff_t>(from);
-        const auto kept = std::remove_if(first, children.end(), [](const Child &child) { return !isKingMove(child); });
+        const auto kept = std::remove_if(first, children.end(), [&](const Child &child) { return !isKingMove(position, child); });
         children.erase(kept, children.end());
     }
 

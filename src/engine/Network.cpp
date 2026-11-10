@@ -34,7 +34,7 @@ int inputOf(Piece piece, int square) {
  * @param input The index of the input
  * @param sign 1 to add the row, -1 to subtract it
  */
-void addInput(std::array<float, NETWORK_HIDDEN> hidden, int input, float sign = 1) {
+void addInput(std::array<float, NETWORK_HIDDEN> &hidden, int input, float sign = 1) {
     for (int i = 0; i < NETWORK_HIDDEN; i++)
         hidden[i] += sign * network->inputWeights[input][i];
 }

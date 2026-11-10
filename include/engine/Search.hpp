@@ -21,7 +21,7 @@ struct SearchResult {
  * @param deadline The deadline (when to stop). Depth 1 always finishes
  * @param maxDepth The maximum depth
  * @param threads How many threads search together
- * @param exact true to search every move at full depth
+ * @param exact true to search every move at full depth and completely
  * @return The best move of the last depth (unfinished if the deadline is reached), the score, the last finished depth, and the nodes searched by all the threads
  */
 SearchResult search(const Position &position, const GameHistory &history, std::chrono::steady_clock::time_point deadline, int maxDepth = 64, int threads = 1, bool exact = false);

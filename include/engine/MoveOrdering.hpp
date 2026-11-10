@@ -7,8 +7,7 @@
 
 struct Child {
     Move move;
-    Position position;
-    int captured;
+    MoveEffects effects;
     int order;
 };
 
@@ -35,13 +34,13 @@ public:
     void start(int maxDepth);
 
     /**
-     * @brief Plays every move and gives it its order
+     * @brief Calculates the effects of every move and gives it its order
      *
      * @param position The position before the moves
      * @param moves The legal moves
      * @param ply The distance from the root
      * @param firstMove The move to search first
-     * @return The moves with their positions
+     * @return The moves with their effects
      */
     std::vector<Child> makeChildren(const Position &position, const std::vector<Move> &moves, int ply, Move firstMove);
 
