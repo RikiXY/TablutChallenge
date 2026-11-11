@@ -22,6 +22,7 @@ constexpr double LMR_DIVISOR = 150;
 constexpr int LMP_FACTOR = 3;
 constexpr int QUIESCENCE_DEPTH = 4;
 constexpr int RFP_MARGIN = 50;
+constexpr int DAMP = 200;
 
 class Searcher {
 private:
@@ -92,7 +93,7 @@ public:
 
         if (depth == 0 && position.hasLegalMove()) {
             if (exact)
-                return evaluate(position, defaultWeights, useNetwork ? &accumulators[ply] : nullptr);
+                return staticScore(position, ply, epochStart);
             return quiescence(position, alpha, beta, ply, QUIESCENCE_DEPTH, epochStart);
         }
 
@@ -102,10 +103,10 @@ public:
         const bool canSkipLate = !exact && !pvNode && ply > 0 && depth <= 3;
 
         if (canSkipLate && std::abs(beta) < WIN_BOUND && position.hasLegalMove()) {
-            const int staticScore = evaluate(position, defaultWeights, useNetwork ? &accumulators[ply] : nullptr);
+            const int score = staticScore(position, ply, epochStart);
             const bool escapeThreat = position.sideToMove == Side::Black && kingOpenRays(position) > 0;
-            if (staticScore - RFP_MARGIN * depth >= beta && !escapeThreat)
-                return staticScore;
+            if (score - RFP_MARGIN * depth >= beta && !escapeThreat)
+                return score;
         }
 
         std::vector<Move> moves = position.calculateLegalMoves(); // Generate all branches
@@ -210,7 +211,7 @@ private:
                 return defendEscape(position, alpha, beta, ply, depth, epochStart, rays);
         }
 
-        int best = evaluate(position, defaultWeights, useNetwork ? &accumulators[ply] : nullptr);
+        int best = staticScore(position, ply, epochStart);
         if (depth == 0 || best >= beta)
             return best;
         alpha = std::max(alpha, best);
@@ -249,7 +250,7 @@ private:
      */
     int defendEscape(const Position &position, int alpha, int beta, int ply, int depth, size_t epochStart, int rays) {
         if (depth == 0 && rays == 1)
-            return evaluate(position, defaultWeights, useNetwork ? &accumulators[ply] : nullptr);
+            return staticScore(position, ply, epochStart);
 
         int kingRow = 0;
         int kingCol = 0;
@@ -350,6 +351,22 @@ private:
         // memory_order_relaxed is enough to just read the value
         if (stop.load(std::memory_order_relaxed) || (canStop && nodes % 1024 == 0 && Clock::now() >= deadline))
             throw TimeUp{};
+    }
+
+    /**
+     * @brief Evaluates a position, moving the score towards a draw the longer the game goes without a capture
+     *
+     * @param position The position
+     * @param ply The distance from the root
+     * @param epochStart Where the positions since the last capture start in path
+     * @return The score from the side to move's point of view
+     */
+    int staticScore(const Position &position, int ply, size_t epochStart) const {
+        const int score = evaluate(position, defaultWeights, useNetwork ? &accumulators[static_cast<size_t>(ply)] : nullptr);
+        if (exact)
+            return score;
+        const int quietPlies = std::clamp(static_cast<int>(path.size() - epochStart) - 1, 0, DAMP / 2);
+        return score * (DAMP - quietPlies) / DAMP;
     }
 
     /**
