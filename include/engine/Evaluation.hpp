@@ -39,6 +39,14 @@ extern const Weights defaultWeights;
 Features computeFeatures(const Position &position);
 
 /**
+ * @brief Counts the directions in which the king has a clear line to the edge
+ *
+ * @param position The position
+ * @return The number of open lines, 0 if there is no king
+ */
+int kingOpenRays(const Position &position);
+
+/**
  * @brief Calculates the linear part of the score without the network
  *
  * @param position The position

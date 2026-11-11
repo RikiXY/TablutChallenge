@@ -77,6 +77,14 @@ struct Position {
     int apply(const Move &move, const MoveEffects &effects);
 
     /**
+     * @brief Calculates the hash after a move that doesn't capture anything, without playing it
+     *
+     * @param move The move (legal, capturing nothing)
+     * @return The hash of the position after the move
+     */
+    uint64_t hashAfterQuietMove(const Move &move) const;
+
+    /**
      * @brief Recomputes the hash from scratch. Necessary after changing board or sideToMove by hand
      */
     void computeHash();

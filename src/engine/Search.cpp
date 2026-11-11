@@ -90,7 +90,7 @@ public:
         if (depth == 0 && position.hasLegalMove()) {
             if (exact)
                 return evaluate(position, defaultWeights, useNetwork ? &accumulators[ply] : nullptr);
-            return quiescence(position, alpha, beta, ply, QUIESCENCE_DEPTH);
+            return quiescence(position, alpha, beta, ply, QUIESCENCE_DEPTH, epochStart);
         }
 
         std::vector<Move> moves = position.calculateLegalMoves(); // Generate all branches
@@ -128,7 +128,7 @@ public:
                 // Searches the child and returns its score from this side's point of view with the window from tis side's point of view
                 auto searchChild = [&](int childDepth, int low, int high) { return -negamax(child, childDepth, -high, -low, ply + 1, childEpoch, Move{}); };
 
-                if (isRepetition(child, childEpoch))
+                if (isRepetition(child.hash, childEpoch))
                     score = 0;
                 else {
                     path.push_back(child.hash);
@@ -168,39 +168,94 @@ public:
 
 private:
     /**
-     * @brief Searches only captures and wins after the normal depth
+     * @brief Searches only captures, wins, and king escape threats after the normal depth
      *
      * @param position The position to search
      * @param alpha The lower end of the search window
      * @param beta The upper end of the search window
      * @param ply The distance from the root
-     * @param depth How many plies of captures are left
+     * @param depth How many plies of quiescence are left
+     * @param epochStart Where the positions since the last capture start in path
      * @return The score from the side to move's point of view
      */
-    int quiescence(const Position &position, int alpha, int beta, int ply, int depth) {
+    int quiescence(const Position &position, int alpha, int beta, int ply, int depth, size_t epochStart) {
         const std::vector<Move> moves = position.calculateTacticalMoves();
         for (const Move &move : moves)
             if (position.effects(move).outcome != Outcome::Ongoing)
                 return WIN - (ply + 1);
+
+        if (position.sideToMove == Side::Black) {
+            const int rays = kingOpenRays(position);
+            if (rays > 0)
+                return defendEscape(position, alpha, beta, ply, depth, epochStart, rays);
+        }
 
         int best = evaluate(position, defaultWeights, useNetwork ? &accumulators[ply] : nullptr);
         if (depth == 0 || best >= beta)
             return best;
         alpha = std::max(alpha, best);
 
-        for (const Move &move : moves) {
-            Position child = position;
-            child.apply(move);
-            nodes++;
-            checkTime();
+        std::vector<Move> candidates = moves;
+        if (position.sideToMove == Side::White)
+            addQuietKingMoves(position, candidates);
 
+        for (const Move &move : candidates) {
+            const MoveEffects effects = position.effects(move);
+            Position child = position;
+            child.apply(move, effects);
+            if (effects.captured == 0 && kingOpenRays(child) == 0)
+                continue;
+
+            const int score = searchQuiescenceMove(position, child, effects.captured > 0, alpha, beta, ply, depth, epochStart);
+            best = std::max(best, score);
+            alpha = std::max(alpha, best);
+            if (alpha >= beta)
+                break;
+        }
+        return best;
+    }
+
+    /**
+     * @brief Quiescence for Black when the king has an open line
+     *
+     * @param position The position (Black to move) with no immediate win
+     * @param alpha The lower end of the search window
+     * @param beta The upper end of the search window
+     * @param ply The distance from the root
+     * @param depth How many plies of quiescence are left
+     * @param epochStart Where the positions since the last capture start in path
+     * @param rays How many open lines the king has
+     * @return The score from Black's point of view
+     */
+    int defendEscape(const Position &position, int alpha, int beta, int ply, int depth, size_t epochStart, int rays) {
+        if (depth == 0 && rays == 1)
+            return evaluate(position, defaultWeights, useNetwork ? &accumulators[ply] : nullptr);
+
+        int kingRow = 0;
+        int kingCol = 0;
+        for (int row = 0; row < 9; row++) {
+            for (int col = 0; col < 9; col++) {
+                if (position.board[row][col] == Piece::King) {
+                    kingRow = row;
+                    kingCol = col;
+                }
+            }
+        }
+
+        int best = -(WIN - (ply + 2)); // +2 because the king can escape in one move and then Black can capture it in one move
+        for (const Move &move : position.calculateLegalMoves()) {
             int score;
-            if (!child.hasLegalMove())
-                score = WIN - (ply + 1);
-            else {
-                if (useNetwork)
-                    accumulators[ply + 1] = updateAccumulator(accumulators[ply], position, child);
-                score = -quiescence(child, -beta, -alpha, ply + 1, depth - 1);
+            if (isRepetition(position.hashAfterQuietMove(move), epochStart) && position.effects(move).captured == 0)
+                score = 0;
+            else if (rays == 1 && depth > 0 && (move.toRow == kingRow || move.toCol == kingCol)) {
+                const MoveEffects effects = position.effects(move);
+                Position child = position;
+                child.apply(move, effects);
+                if (kingOpenRays(child) > 0)
+                    continue;
+                score = searchQuiescenceMove(position, child, effects.captured > 0, alpha, beta, ply, depth, epochStart);
+            } else {
+                continue;
             }
 
             best = std::max(best, score);
@@ -209,6 +264,63 @@ private:
                 break;
         }
         return best;
+    }
+
+    /**
+     * @brief Searches a quiescence child
+     *
+     * @param position The position before the move
+     * @param child The position after the move
+     * @param captured Whether the move captured
+     * @param alpha The lower end of the window
+     * @param beta The upper end of the window
+     * @param ply The distance of position from the root
+     * @param depth How many plies of quiescence are left at position
+     * @param epochStart Where the positions since the last capture start in path
+     * @return The score from the point of view of the side that moved
+     */
+    int searchQuiescenceMove(const Position &position, const Position &child, bool captured, int alpha, int beta, int ply, int depth, size_t epochStart) {
+        nodes++;
+        checkTime();
+        const size_t childEpoch = captured ? path.size() : epochStart;
+        if (isRepetition(child.hash, childEpoch))
+            return 0;
+        if (!child.hasLegalMove())
+            return WIN - (ply + 1);
+
+        path.push_back(child.hash);
+        if (useNetwork)
+            accumulators[ply + 1] = updateAccumulator(accumulators[ply], position, child);
+        const int score = -quiescence(child, -beta, -alpha, ply + 1, depth - 1, childEpoch);
+        path.pop_back();
+        return score;
+    }
+
+    /**
+     * @brief Adds the king moves that don't capture
+     *
+     * @param position The position, White to move
+     * @param moves Where to add the moves
+     */
+    static void addQuietKingMoves(const Position &position, std::vector<Move> &moves) {
+        for (int row = 0; row < 9; row++) {
+            for (int col = 0; col < 9; col++) {
+                if (position.board[row][col] != Piece::King)
+                    continue;
+                for (const auto &[dRow, dCol] : directions) {
+                    int r = row + dRow;
+                    int c = col + dCol;
+                    while (isOnBoard(r, c) && position.board[r][c] == Piece::Empty && !isThrone(r, c) && !isCamp(r, c)) {
+                        const Move move{row, col, r, c};
+                        if (position.effects(move).captured == 0)
+                            moves.push_back(move);
+                        r += dRow;
+                        c += dCol;
+                    }
+                }
+                return;
+            }
+        }
     }
 
     /**
@@ -261,13 +373,13 @@ private:
     /**
      * @brief Checks whether a position is a draw by repetition
      *
-     * @param child The position after the move
+     * @param hash The hash of the position after the move
      * @param epochStart Where the positions since the last capture start in path
      * @return true if it was already seen more than allowedRepetitions times
      */
-    bool isRepetition(const Position &child, size_t epochStart) const {
+    bool isRepetition(uint64_t hash, size_t epochStart) const {
         // Counts how many times the child position (its hash) has been seen since the last capture
-        const auto seen = std::count(path.begin() + static_cast<std::ptrdiff_t>(epochStart), path.end(), child.hash);
+        const auto seen = std::count(path.begin() + static_cast<std::ptrdiff_t>(epochStart), path.end(), hash);
         return seen > allowedRepetitions;
     }
 };

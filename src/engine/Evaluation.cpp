@@ -90,6 +90,14 @@ int openRays(const BoardMatrix &board, int row, int col) {
 
 } // namespace
 
+int kingOpenRays(const Position &position) {
+    for (int row = 0; row < 9; row++)
+        for (int col = 0; col < 9; col++)
+            if (position.board[row][col] == Piece::King)
+                return openRays(position.board, row, col);
+    return 0;
+}
+
 Features computeFeatures(const Position &position) {
     Features features{};
     features[Constant] = 1;

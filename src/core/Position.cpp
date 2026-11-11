@@ -339,6 +339,11 @@ int Position::apply(const Move &move) {
     return apply(move, effects(move));
 }
 
+uint64_t Position::hashAfterQuietMove(const Move &move) const {
+    const Piece piece = board[move.fromRow][move.fromCol];
+    return hash ^ key(piece, move.fromRow, move.fromCol) ^ key(piece, move.toRow, move.toCol) ^ zobrist.whiteToMove;
+}
+
 int Position::apply(const Move &move, const MoveEffects &effects) {
     // Apply the move to the board
     const Piece pieceToMove = board[move.fromRow][move.fromCol];
