@@ -21,7 +21,7 @@ TranspositionTable table(64);
 constexpr double LMR_DIVISOR = 150;
 constexpr int LMP_FACTOR = 3;
 constexpr int QUIESCENCE_DEPTH = 4;
-constexpr int RFP_MARGIN = 50;
+constexpr int RFP_MARGIN = 100;
 constexpr int DAMP = 200;
 
 class Searcher {

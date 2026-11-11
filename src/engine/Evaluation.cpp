@@ -3,19 +3,19 @@
 #include <cstdlib>
 
 const Weights defaultWeights = {
-    85,   // WhitePawns
-    -65,  // BlackPawns
-    82,   // KingOpenRays
+    191,  // WhitePawns
+    -129, // BlackPawns
+    253,  // KingOpenRays
     8000, // EscapeWhiteToMove
     4000, // DoubleEscapeBlackToMove
-    -17,  // BlackNextToKing
-    16,   // CampOrThroneNextToKing
-    5,    // KingDistanceFromThrone
-    -25,  // BlackCornerGuards
-    13,   // KingMobility
-    20,   // KingTwoStep
-    10,   // WhiteNextToKing
-    80,   // Constant
+    -74,  // BlackNextToKing
+    -33,  // CampOrThroneNextToKing
+    65,   // KingDistanceFromThrone
+    -47,  // BlackCornerGuards
+    -11,  // KingMobility
+    30,   // KingTwoStep
+    -41,  // WhiteNextToKing
+    1     // Constant
 };
 
 namespace {
