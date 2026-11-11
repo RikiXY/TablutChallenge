@@ -10,20 +10,29 @@ constexpr int CAPTURE_ORDER = 1 << 28;
 constexpr int KILLER_ORDER = 1 << 27;
 constexpr int MAX_HISTORY = 1 << 20;
 
+/**
+ * @brief Calculates the index of a move from its from and to squares
+ *
+ * @param move The move
+ * @return The index, from 0 to 81*81-1
+ */
+size_t fromTo(const Move &move) {
+    return static_cast<size_t>((move.fromRow * 9 + move.fromCol) * 81 + move.toRow * 9 + move.toCol);
+}
+
 } // namespace
 
 int &MoveOrdering::historyOf(Side side, const Move &move) {
-    const int from = move.fromRow * 9 + move.fromCol;
-    const int to = move.toRow * 9 + move.toCol;
-    return cutoffHistory[static_cast<size_t>((static_cast<int>(side) * 81 + from) * 81 + to)];
+    return cutoffHistory[static_cast<size_t>(side) * 81 * 81 + fromTo(move)];
 }
 
 void MoveOrdering::start(int maxDepth) {
     killers.assign(static_cast<size_t>(maxDepth) + 1, {});
 }
 
-std::vector<Child> MoveOrdering::makeChildren(const Position &position, const std::vector<Move> &moves, int ply, Move firstMove) {
+std::vector<Child> MoveOrdering::makeChildren(const Position &position, const std::vector<Move> &moves, int ply, Move firstMove, const Move &previous) {
     const auto &killer = killers[static_cast<size_t>(ply)];
+    const Move &counterMove = counterMoves[fromTo(previous)];
     std::vector<Child> children;
     children.reserve(moves.size());
     for (const Move &move : moves) {
@@ -38,6 +47,8 @@ std::vector<Child> MoveOrdering::makeChildren(const Position &position, const st
             child.order = KILLER_ORDER + 1;
         else if (move == killer[1])
             child.order = KILLER_ORDER;
+        else if (move == counterMove)
+            child.order = KILLER_ORDER - 1;
         else
             child.order = historyOf(position.sideToMove, move);
         children.push_back(child);
@@ -45,14 +56,20 @@ std::vector<Child> MoveOrdering::makeChildren(const Position &position, const st
     return children;
 }
 
-void MoveOrdering::rememberCutoff(Side side, const Move &move, int depth, int ply) {
+void MoveOrdering::rememberCutoff(Side side, const Move &move, int depth, int ply, const Move &previous) {
     auto &killer = killers[static_cast<size_t>(ply)];
     if (killer[0] != move) {
         killer[1] = killer[0];
         killer[0] = move;
     }
+    counterMoves[fromTo(previous)] = move;
     int &score = historyOf(side, move);
     score = std::min(score + depth * depth, MAX_HISTORY);
+}
+
+void MoveOrdering::lowerHistory(Side side, const Move &move, int depth) {
+    int &score = historyOf(side, move);
+    score = std::max(score - depth * depth, -MAX_HISTORY);
 }
 
 const Child &selectNext(std::vector<Child> &children, size_t index) {

@@ -21,6 +21,7 @@ TranspositionTable table(64);
 constexpr double LMR_DIVISOR = 150;
 constexpr int LMP_FACTOR = 3;
 constexpr int QUIESCENCE_DEPTH = 4;
+constexpr int RFP_MARGIN = 50;
 
 class Searcher {
 private:
@@ -32,6 +33,7 @@ private:
     bool useNetwork = isNetworkLoaded();
     std::vector<Accumulator> accumulators;
     MoveOrdering ordering;
+    std::vector<Move> previousMoves;
 
 public:
     bool canStop = false;
@@ -46,6 +48,7 @@ public:
      */
     void start(const Position &root, int maxDepth) {
         ordering.start(maxDepth);
+        previousMoves.assign(static_cast<size_t>(maxDepth) + 1, Move{});
         if (!useNetwork)
             return;
         accumulators.resize(static_cast<size_t>(maxDepth + QUIESCENCE_DEPTH) + 1);
@@ -66,8 +69,8 @@ public:
      *
      * @param position The position to search
      * @param depth How many plies are left to search
-     * @param alpha The score the side to move already has guranteed somewhere else
-     * @param beta The score the opponent already has guranteed somewhere else, not allowing moves better than that
+     * @param alpha The score the side to move already has guaranteed somewhere else
+     * @param beta The score the opponent already has guaranteed somewhere else, not allowing moves better than that
      * @param ply The distance from the root
      * @param epochStart Where the positions since the last capture start in path
      * @param firstMove The move to search first
@@ -93,14 +96,26 @@ public:
             return quiescence(position, alpha, beta, ply, QUIESCENCE_DEPTH, epochStart);
         }
 
+        if (!exact && depth >= 4 && firstMove == Move{})
+            depth--;
+
+        const bool canSkipLate = !exact && !pvNode && ply > 0 && depth <= 3;
+
+        if (canSkipLate && std::abs(beta) < WIN_BOUND && position.hasLegalMove()) {
+            const int staticScore = evaluate(position, defaultWeights, useNetwork ? &accumulators[ply] : nullptr);
+            const bool escapeThreat = position.sideToMove == Side::Black && kingOpenRays(position) > 0;
+            if (staticScore - RFP_MARGIN * depth >= beta && !escapeThreat)
+                return staticScore;
+        }
+
         std::vector<Move> moves = position.calculateLegalMoves(); // Generate all branches
         if (moves.empty())
             return -(WIN - ply); // The opponent already won because this side can't move
                                  // ! -ply indica che l'algoritmo preferisce perdere il più tardi possibile
 
-        std::vector<Child> children = ordering.makeChildren(position, moves, ply, firstMove);
+        const Move &previous = previousMoves[static_cast<size_t>(ply)];
+        std::vector<Child> children = ordering.makeChildren(position, moves, ply, firstMove, previous);
 
-        const bool canSkipLate = !exact && !pvNode && ply > 0 && depth <= 3;
         const size_t lmpMoves = static_cast<size_t>(LMP_FACTOR * depth * depth);
 
         int best = -WIN - 1; // ! The worst possible score for the side to move (like -inf in minimax)
@@ -125,7 +140,7 @@ public:
                 child.apply(move, next.effects);
                 const size_t childEpoch = captured ? path.size() : epochStart;
 
-                // Searches the child and returns its score from this side's point of view with the window from tis side's point of view
+                // Searches the child and returns its score from this side's point of view with the window from this side's point of view
                 auto searchChild = [&](int childDepth, int low, int high) { return -negamax(child, childDepth, -high, -low, ply + 1, childEpoch, Move{}); };
 
                 if (isRepetition(child.hash, childEpoch))
@@ -134,6 +149,7 @@ public:
                     path.push_back(child.hash);
                     if (useNetwork)
                         accumulators[ply + 1] = updateAccumulator(accumulators[ply], position, child);
+                    previousMoves[static_cast<size_t>(ply) + 1] = move;
                     if (i == 0)
                         score = searchChild(depth - 1, alpha, beta);
                     else {
@@ -156,8 +172,12 @@ public:
             }
             alpha = std::max(alpha, best);
             if (alpha >= beta) {
-                if (!captured)
-                    ordering.rememberCutoff(position.sideToMove, move, depth, ply);
+                if (!captured) {
+                    ordering.rememberCutoff(position.sideToMove, move, depth, ply, previous);
+                    for (size_t j = 0; j < i; j++)
+                        if (children[j].effects.captured == 0)
+                            ordering.lowerHistory(position.sideToMove, children[j].move, depth);
+                }
                 break;
             }
         }

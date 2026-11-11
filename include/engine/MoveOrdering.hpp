@@ -15,6 +15,7 @@ class MoveOrdering {
 private:
     std::vector<std::array<Move, 2>> killers;
     std::vector<int> cutoffHistory = std::vector<int>(2 * 81 * 81);
+    std::vector<Move> counterMoves = std::vector<Move>(81 * 81);
 
     /**
      * @brief Finds the history of a move
@@ -40,9 +41,10 @@ public:
      * @param moves The legal moves
      * @param ply The distance from the root
      * @param firstMove The move to search first
+     * @param previous The move that led to the position
      * @return The moves with their effects
      */
-    std::vector<Child> makeChildren(const Position &position, const std::vector<Move> &moves, int ply, Move firstMove);
+    std::vector<Child> makeChildren(const Position &position, const std::vector<Move> &moves, int ply, Move firstMove, const Move &previous);
 
     /**
      * @brief Remembers a quiet move that caused a cutoff
@@ -51,8 +53,18 @@ public:
      * @param move The move
      * @param depth The depth left at the node
      * @param ply The distance from the root
+     * @param previous The move that led to the position
      */
-    void rememberCutoff(Side side, const Move &move, int depth, int ply);
+    void rememberCutoff(Side side, const Move &move, int depth, int ply, const Move &previous);
+
+    /**
+     * @brief Lowers the history of a quiet move that did not cause a cutoff
+     *
+     * @param side The side that played the move
+     * @param move The move
+     * @param depth The depth left at the node
+     */
+    void lowerHistory(Side side, const Move &move, int depth);
 };
 
 /**
@@ -65,9 +77,9 @@ public:
 const Child &selectNext(std::vector<Child> &children, size_t index);
 
 /**
- * @brief Checks whether a child is ordered only by its history
+ * @brief Checks whether a child is ordered by its history or is the countermove
  *
  * @param child The child
- * @return true if the child is ordered only by its history
+ * @return true if the child is not the first move, a win, a capture or a killer
  */
 bool isHistoryMove(const Child &child);
