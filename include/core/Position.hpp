@@ -99,6 +99,13 @@ struct Position {
     Bitboard captureSquares() const;
 
     /**
+     * @brief Checks whether the side to move can end the game with its next move, without generating the moves
+     *
+     * @return true if there is a winning move
+     */
+    bool hasWinningMove() const;
+
+    /**
      * @brief Calculates what a move would capture and whether it would end the game
      *
      * @param move The move (legal)

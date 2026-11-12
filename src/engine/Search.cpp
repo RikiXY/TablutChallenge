@@ -209,11 +209,8 @@ private:
      * @return The score from the side to move's point of view
      */
     int quiescence(const Position &position, int alpha, int beta, int ply, int depth, size_t epochStart) {
-        std::vector<TacticalMove> &moves = tacticalLists[static_cast<size_t>(ply)];
-        position.calculateTacticalMoves(moves);
-        for (const TacticalMove &move : moves)
-            if (move.effects.outcome != Outcome::Ongoing)
-                return WIN - (ply + 1);
+        if (position.hasWinningMove())
+            return WIN - (ply + 1);
 
         if (position.sideToMove == Side::Black) {
             const int rays = kingOpenRays(position);
@@ -226,6 +223,8 @@ private:
             return best;
         alpha = std::max(alpha, best);
 
+        std::vector<TacticalMove> &moves = tacticalLists[static_cast<size_t>(ply)];
+        position.calculateTacticalMoves(moves);
         if (position.sideToMove == Side::White)
             addQuietKingMoves(position, moves);
 

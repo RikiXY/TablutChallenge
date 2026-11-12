@@ -194,6 +194,46 @@ void Position::calculateTacticalMoves(std::vector<TacticalMove> &moves) const {
     }
 }
 
+bool Position::hasWinningMove() const {
+    if (outcome != Outcome::Ongoing || !king)
+        return false;
+    const int square = kingSquare();
+    const Bitboard occupied = white | black | king;
+
+    if (sideToMove == Side::White) {
+        const Bitboard blockers = white | black | tables.camps | bit(THRONE);
+        for (int direction = 0; direction < 4; direction++)
+            if (tables.rayLength[square][direction] > 0 && !(tables.rayMask[square][direction] & blockers))
+                return true;
+        return false;
+    }
+
+    Bitboard targets = 0;
+    if (square == THRONE || (tables.neighbours[THRONE] & king)) {
+        const Bitboard missing = tables.neighbours[square] & ~(black | bit(THRONE));
+        if (popcount(missing) == 1)
+            targets = missing;
+    } else {
+        for (int direction = 0; direction < 4; direction++)
+            if (shift(king, direction ^ 1) & (black | tables.camps))
+                targets |= shift(king, direction);
+    }
+
+    for (targets &= ~occupied; targets; targets &= targets - 1) {
+        const int to = lowestSquare(targets);
+        for (int direction = 0; direction < 4; direction++) {
+            const int length = freeLength(to, direction, occupied);
+            if (length == tables.rayLength[to][direction])
+                continue;
+            const int from = tables.ray[to][direction][length];
+            const Bitboard path = bit(to) | (tables.rayMask[to][direction] & ~tables.rayMask[from][direction] & ~bit(from));
+            if ((black & bit(from)) && !(path & forbiddenFrom(from)))
+                return true;
+        }
+    }
+    return false;
+}
+
 Bitboard Position::captureSquares() const {
     const bool whiteToMove = sideToMove == Side::White;
     const Bitboard hostile = whiteToMove ? white | king | bit(THRONE) | (tables.camps & ~tables.campCenters) : black | bit(THRONE) | tables.camps;
