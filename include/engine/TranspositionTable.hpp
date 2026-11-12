@@ -67,6 +67,15 @@ public:
     std::optional<Entry> probe(uint64_t key) const;
 
     /**
+     * @brief Starts loading the slot of a key into the cache, so a later probe doesn't wait for memory
+     *
+     * @param key The hash of the position
+     */
+    void prefetch(uint64_t key) const {
+        __builtin_prefetch(&slots[key & (slots.size() - 1)]);
+    }
+
+    /**
      * @brief Saves a search result. Replaces the slot unless it holds another position from this same search with a deeper search result
      *
      * @param key The position hash

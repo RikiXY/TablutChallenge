@@ -14,7 +14,7 @@ enum class Outcome : uint8_t { Ongoing,
 
 struct MoveEffects {
     uint8_t capturedDirections = 0; // Bit d = 1 if the neighbour in directions[d] gets captured
-    int captured = 0;
+    uint8_t captured = 0;
     Outcome outcome = Outcome::Ongoing;
     bool operator==(const MoveEffects &) const = default;
 };

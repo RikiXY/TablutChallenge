@@ -148,6 +148,7 @@ public:
             else {
                 Position child = position;
                 child.apply(move, next.effects);
+                table.prefetch(child.hash);
                 const size_t childEpoch = captured ? path.size() : epochStart;
 
                 // Searches the child and returns its score from this side's point of view with the window from this side's point of view
