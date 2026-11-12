@@ -98,7 +98,8 @@ public:
             firstMove = entry->move();
         }
 
-        if (depth == 0 && position.hasLegalMove()) {
+        const bool canMove = position.hasLegalMove();
+        if (depth == 0 && canMove) {
             if (exact)
                 return staticScore(position, ply, epochStart);
             return quiescence(position, alpha, beta, ply, QUIESCENCE_DEPTH, epochStart);
@@ -109,28 +110,33 @@ public:
 
         const bool canSkipLate = !exact && !pvNode && ply > 0 && depth <= 3;
 
-        if (canSkipLate && std::abs(beta) < WIN_BOUND && position.hasLegalMove()) {
+        if (canSkipLate && std::abs(beta) < WIN_BOUND && canMove) {
             const int score = staticScore(position, ply, epochStart);
             const bool escapeThreat = position.sideToMove == Side::Black && kingOpenRays(position) > 0;
             if (score - RFP_MARGIN * depth >= beta && !escapeThreat)
                 return score;
         }
 
-        std::vector<Move> &moves = moveLists[static_cast<size_t>(ply)];
-        position.calculateLegalMoves(moves); // Generate all branches
-        if (moves.empty())
+        if (!canMove)
             return -(WIN - ply); // The opponent already won because this side can't move
                                  // ! -ply indica che l'algoritmo preferisce perdere il più tardi possibile
 
         const Move &previous = previousMoves[static_cast<size_t>(ply)];
         std::vector<Child> &children = childLists[static_cast<size_t>(ply)];
-        ordering.makeChildren(position, moves, ply, firstMove, previous, children);
+        children.clear();
+        int stage = 0;
+        bool onlyKingMoves = false;
 
         const size_t lmpMoves = static_cast<size_t>(LMP_FACTOR * depth * depth);
 
         int best = -WIN - 1; // ! The worst possible score for the side to move (like -inf in minimax)
         Move bestMove{};
-        for (size_t i = 0; i < children.size(); i++) {
+        for (size_t i = 0;; i++) {
+            while (i == children.size() && stage < 4)
+                ordering.addStage(++stage, position, ply, firstMove, previous, onlyKingMoves, tacticalLists[static_cast<size_t>(ply)],
+                                  moveLists[static_cast<size_t>(ply)], children);
+            if (i == children.size())
+                break;
             const Child &next = selectNext(children, i);
             const Move &move = next.move;
             const bool captured = next.effects.captured > 0;
@@ -139,6 +145,7 @@ public:
             const bool lateQuiet = isHistoryMove(next) && !isKingMove(position, next);
             if (canSkipLate && i >= lmpMoves && notLosing && lateQuiet) {
                 keepOnlyKingMoves(position, children, i + 1);
+                onlyKingMoves = true;
                 continue;
             }
 

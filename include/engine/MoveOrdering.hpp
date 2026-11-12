@@ -35,16 +35,20 @@ public:
     void start(int maxDepth);
 
     /**
-     * @brief Calculates the effects of every move and gives it its order
+     * @brief Adds the next stage of moves to the children
      *
+     * @param stage The stage to add (1 the first move, 2 wins and captures, 3 killers and countermove, 4 the other quiet moves)
      * @param position The position before the moves
-     * @param moves The legal moves
      * @param ply The distance from the root
      * @param firstMove The move to search first
      * @param previous The move that led to the position
-     * @param children Where to write the moves with their effects
+     * @param onlyKingMoves true to add only king moves in stage 4
+     * @param tactical A list to reuse for stage 2, which stage 4 reads to skip the moves already added
+     * @param moves A list to reuse for stage 4
+     * @param children Where to add the moves with their effects and order
      */
-    void makeChildren(const Position &position, const std::vector<Move> &moves, int ply, Move firstMove, const Move &previous, std::vector<Child> &children);
+    void addStage(int stage, const Position &position, int ply, Move firstMove, const Move &previous, bool onlyKingMoves,
+                  std::vector<TacticalMove> &tactical, std::vector<Move> &moves, std::vector<Child> &children);
 
     /**
      * @brief Remembers a quiet move that caused a cutoff

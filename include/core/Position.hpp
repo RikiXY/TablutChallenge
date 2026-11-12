@@ -70,6 +70,14 @@ struct Position {
     void calculateLegalMoves(std::vector<Move> &moves) const;
 
     /**
+     * @brief Checks whether a move is legal
+     *
+     * @param move The move
+     * @return true if the side to move can play it
+     */
+    bool isLegal(const Move &move) const;
+
+    /**
      * @brief Checks whether the side to move has at least one legal move
      *
      * @return true if there is at least one legal move

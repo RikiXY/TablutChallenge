@@ -128,6 +128,23 @@ void Position::calculateLegalMoves(std::vector<Move> &moves) const {
     }
 }
 
+bool Position::isLegal(const Move &move) const {
+    if (outcome != Outcome::Ongoing || move.from >= 81 || move.to >= 81)
+        return false;
+    const Bitboard own = sideToMove == Side::White ? white | king : black;
+    if (!(own & bit(move.from)) || move.from == move.to)
+        return false;
+    int direction;
+    if (move.from / 9 == move.to / 9)
+        direction = move.to < move.from ? 0 : 1;
+    else if (move.from % 9 == move.to % 9)
+        direction = move.to < move.from ? 2 : 3;
+    else
+        return false;
+    const int distance = std::abs(move.to - move.from) / (direction < 2 ? 1 : 9);
+    return distance <= freeLength(move.from, direction, white | black | king | forbiddenFrom(move.from));
+}
+
 bool Position::hasLegalMove() const {
     if (outcome != Outcome::Ongoing)
         return false;

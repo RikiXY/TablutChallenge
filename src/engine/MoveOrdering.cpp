@@ -30,30 +30,51 @@ void MoveOrdering::start(int maxDepth) {
     killers.assign(static_cast<size_t>(maxDepth) + 1, {});
 }
 
-void MoveOrdering::makeChildren(const Position &position, const std::vector<Move> &moves, int ply, Move firstMove, const Move &previous, std::vector<Child> &children) {
+void MoveOrdering::addStage(int stage, const Position &position, int ply, Move firstMove, const Move &previous, bool onlyKingMoves,
+                            std::vector<TacticalMove> &tactical, std::vector<Move> &moves, std::vector<Child> &children) {
     const auto &killer = killers[static_cast<size_t>(ply)];
     const Move &counterMove = counterMoves[fromTo(previous)];
-    const Bitboard captureSquares = position.captureSquares();
-    children.clear();
-    for (const Move &move : moves) {
-        const bool capturing = captureSquares & bit(move.to);
-        const bool kingToEdge = (position.king & bit(move.from)) && (tables.edges & bit(move.to));
-        Child child{move, capturing || kingToEdge ? position.effects(move) : MoveEffects{}, 0};
-        if (move == firstMove)
-            child.order = FIRST_MOVE_ORDER;
-        else if (child.effects.outcome != Outcome::Ongoing)
-            child.order = WIN_ORDER;
-        else if (child.effects.captured > 0)
-            child.order = CAPTURE_ORDER + child.effects.captured;
-        else if (move == killer[0])
-            child.order = KILLER_ORDER + 1;
-        else if (move == killer[1])
-            child.order = KILLER_ORDER;
-        else if (move == counterMove)
-            child.order = KILLER_ORDER - 1;
-        else
-            child.order = historyOf(position.sideToMove, move);
-        children.push_back(child);
+    switch (stage) {
+    case 1: // The first move
+        if (position.isLegal(firstMove))
+            children.push_back({firstMove, position.effects(firstMove), FIRST_MOVE_ORDER});
+        break;
+    case 2: // The captures and wins
+        position.calculateTacticalMoves(tactical);
+        for (const TacticalMove &move : tactical)
+            if (move.move != firstMove)
+                children.push_back({move.move, move.effects, move.effects.outcome != Outcome::Ongoing ? WIN_ORDER : CAPTURE_ORDER + move.effects.captured});
+        break;
+    case 3: { // The killers and the countermove
+        const std::array<std::pair<Move, int>, 3> candidates = {{{killer[0], KILLER_ORDER + 1}, {killer[1], KILLER_ORDER}, {counterMove, KILLER_ORDER - 1}}};
+        for (size_t i = 0; i < candidates.size(); i++) {
+            const auto &[move, order] = candidates[i];
+            const bool duplicate = move == firstMove || (i >= 1 && move == killer[0]) || (i == 2 && move == killer[1]);
+            if (duplicate || !position.isLegal(move))
+                continue;
+            const MoveEffects effects = position.effects(move);
+            if (effects.captured == 0 && effects.outcome == Outcome::Ongoing) // Captures and wins are in stage 2
+                children.push_back({move, effects, order});
+        }
+        break;
+    }
+    default: { // The other quiet moves
+        position.calculateLegalMoves(moves);
+        Bitboard tacticalTargets = 0; // Where the stage 2 moves land, to look one up only when a move lands there too
+        for (const TacticalMove &move : tactical)
+            tacticalTargets |= bit(move.move.to);
+        for (const Move &move : moves) {
+            if (move == firstMove || move == killer[0] || move == killer[1] || move == counterMove)
+                continue;
+            if (onlyKingMoves && !(position.king & bit(move.from)))
+                continue;
+            const auto inStage2 = [&](const TacticalMove &tacticalMove) { return tacticalMove.move == move; };
+            if ((tacticalTargets & bit(move.to)) && std::any_of(tactical.begin(), tactical.end(), inStage2))
+                continue; // A capture or a win, already added in stage 2
+            children.push_back({move, MoveEffects{}, historyOf(position.sideToMove, move)});
+        }
+        break;
+    }
     }
 }
 
