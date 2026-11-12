@@ -1,6 +1,7 @@
 #include "engine/Network.hpp"
 #include <algorithm>
 #include <cstdlib>
+#include <cstring>
 #include <fstream>
 #include <memory>
 #include <stdexcept>
@@ -8,6 +9,10 @@
 namespace {
 
 std::unique_ptr<Network> network; // If null, the network is not loaded and networkScore() returns 0. unique_ptr to automatically free the memory
+
+// The default network, embedded in the binary from the file NETWORK_FILE
+asm(".section .rodata\n.balign 64\nembeddedNetwork:\n.incbin \"" NETWORK_FILE "\"\nembeddedNetworkEnd:\n.previous");
+extern "C" const char embeddedNetwork[], embeddedNetworkEnd[];
 
 /**
  * @brief Calculates the input of a piece
@@ -52,7 +57,18 @@ bool loadNetwork(const std::string &path) {
 
 void loadNetworkFromEnvironment() {
     const char *path = std::getenv("TABLUT_NNUE");
-    if (path && !loadNetwork(path))
+    if (!path) {
+        if (embeddedNetworkEnd - embeddedNetwork != sizeof(Network))
+            throw std::runtime_error("The embedded network must be exactly " + std::to_string(sizeof(Network)) + " bytes");
+        network = std::make_unique<Network>();
+        std::memcpy(network.get(), embeddedNetwork, sizeof(Network));
+        return;
+    }
+    if (std::string(path) == "0") {
+        network.reset();
+        return;
+    }
+    if (!loadNetwork(path))
         throw std::runtime_error("TABLUT_NNUE: can't load " + std::string(path) + " (it must be exactly " + std::to_string(sizeof(Network)) + " bytes)");
 }
 

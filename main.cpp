@@ -16,7 +16,7 @@
 // ./build/player WHITE 60 127.0.0.1 -n player1 -m auto
 // ./build/player BLACK 60 127.0.0.1 -n player2 -m auto
 // ./build/player think 100 e3d3 a4b4
-// TABLUT_NNUE=net.nnue ./build/player (...) adds the NNUE to the evaluation
+// TABLUT_NNUE=net.nnue ./build/player (...) uses another network instead of the embedded nets/default.nnue, TABLUT_NNUE=0 none
 
 namespace {
 

@@ -30,7 +30,7 @@ struct Accumulator {
 bool loadNetwork(const std::string &path);
 
 /**
- * @brief Loads the network from the file in TABLUT_NNUE (if set). Throws if it can't be loaded
+ * @brief Loads the network from the file in TABLUT_NNUE, the embedded one if it's not set, none if it's 0. Throws if it can't be loaded
  */
 void loadNetworkFromEnvironment();
 

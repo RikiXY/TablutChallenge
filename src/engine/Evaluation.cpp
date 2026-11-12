@@ -1,21 +1,75 @@
 #include "engine/Evaluation.hpp"
 #include "engine/Network.hpp"
+#include <algorithm>
 #include <cstdlib>
 
 const Weights defaultWeights = {
-    191,  // WhitePawns
-    -129, // BlackPawns
-    253,  // KingOpenRays
+    178,  // WhitePawns
+    -126, // BlackPawns
+    189,  // KingOpenRays
     8000, // EscapeWhiteToMove
     4000, // DoubleEscapeBlackToMove
-    -74,  // BlackNextToKing
-    -33,  // CampOrThroneNextToKing
-    65,   // KingDistanceFromThrone
-    -47,  // BlackCornerGuards
-    -11,  // KingMobility
-    30,   // KingTwoStep
-    -41,  // WhiteNextToKing
-    1     // Constant
+    -7,   // BlackNextToKing
+    44,   // CampOrThroneNextToKing
+    146,  // KingDistanceFromThrone
+    -54,  // BlackCornerGuards
+    -3,   // KingMobility
+    14,   // KingTwoStep
+    -24,  // WhiteNextToKing
+    -94,  // Constant
+    51,   // KingEdgeDistance
+    -65,  // BlackNearKing
+    36,   // WhiteNearKing
+    -40,  // BlackOnKingLines
+    144,  // KingOnThrone
+    // PstKing
+    0,
+    0,
+    -33,
+    0,
+    -68,
+    48,
+    0,
+    -118,
+    18,
+    -40,
+    0,
+    0,
+    98,
+    59,
+    -7,
+    // PstWhite
+    -16,
+    38,
+    38,
+    82,
+    -15,
+    -29,
+    0,
+    14,
+    -7,
+    -10,
+    0,
+    0,
+    -21,
+    -26,
+    0,
+    // PstBlack
+    72,
+    34,
+    -9,
+    19,
+    -2,
+    -101,
+    6,
+    132,
+    -33,
+    11,
+    -32,
+    23,
+    104,
+    130,
+    0,
 };
 
 namespace {
@@ -31,6 +85,21 @@ namespace {
 bool blocksKing(const BoardMatrix &board, int row, int col) {
     const Piece piece = board[row][col];
     return (piece != Piece::Empty && piece != Piece::King) || isCamp(row, col) || isThrone(row, col);
+}
+
+/**
+ * @brief Finds the piece-square class of a cell
+ *
+ * @param row The row of the cell
+ * @param col The column of the cell
+ * @return The class, from 0 (a1) to 14 (e5)
+ */
+int squareClass(int row, int col) {
+    const int r = std::min(row, 8 - row);
+    const int c = std::min(col, 8 - col);
+    const int low = std::min(r, c);
+    const int high = std::max(r, c);
+    return high * (high + 1) / 2 + low;
 }
 
 /**
@@ -107,13 +176,16 @@ Features computeFeatures(const Position &position) {
     for (int row = 0; row < 9; row++) {
         for (int col = 0; col < 9; col++) {
             const Piece piece = position.board[row][col];
-            if (piece == Piece::White)
+            if (piece == Piece::White) {
                 features[WhitePawns]++;
-            else if (piece == Piece::Black)
+                features[PstWhite + squareClass(row, col)]++;
+            } else if (piece == Piece::Black) {
                 features[BlackPawns]++;
-            else if (piece == Piece::King) {
+                features[PstBlack + squareClass(row, col)]++;
+            } else if (piece == Piece::King) {
                 kingRow = row;
                 kingCol = col;
+                features[PstKing + squareClass(row, col)] = 1;
             }
         }
     }
@@ -143,10 +215,25 @@ Features computeFeatures(const Position &position) {
 
     features[KingDistanceFromThrone] = std::abs(kingRow - 4) + std::abs(kingCol - 4);
 
-    for (int row = 0; row < 9; row++)
-        for (int col = 0; col < 9; col++)
-            if (isCornerGuard(row, col) && position.board[row][col] == Piece::Black)
+    features[KingEdgeDistance] = std::min(std::min(kingRow, 8 - kingRow), std::min(kingCol, 8 - kingCol));
+    features[KingOnThrone] = isThrone(kingRow, kingCol);
+
+    for (int row = 0; row < 9; row++) {
+        for (int col = 0; col < 9; col++) {
+            const Piece piece = position.board[row][col];
+            const bool nearKing = std::abs(row - kingRow) <= 2 && std::abs(col - kingCol) <= 2;
+            if (piece == Piece::White && nearKing)
+                features[WhiteNearKing]++;
+            if (piece != Piece::Black)
+                continue;
+            if (isCornerGuard(row, col))
                 features[BlackCornerGuards]++;
+            if (nearKing)
+                features[BlackNearKing]++;
+            if (row == kingRow || col == kingCol)
+                features[BlackOnKingLines]++;
+        }
+    }
 
     features[EscapeWhiteToMove] = position.sideToMove == Side::White && features[KingOpenRays] > 0;
     features[DoubleEscapeBlackToMove] = position.sideToMove == Side::Black && features[KingOpenRays] > 1;

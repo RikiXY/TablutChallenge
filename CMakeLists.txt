@@ -41,6 +41,11 @@ add_library(tablut STATIC
     src/agent/Human.cpp
 )
 
+# The default network, embedded in the binary
+set(NETWORK_FILE ${CMAKE_CURRENT_SOURCE_DIR}/nets/default.nnue)
+target_compile_definitions(tablut PRIVATE NETWORK_FILE="${NETWORK_FILE}")
+set_source_files_properties(src/engine/Network.cpp PROPERTIES OBJECT_DEPENDS ${NETWORK_FILE})
+
 # Header files
 target_include_directories(tablut PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include

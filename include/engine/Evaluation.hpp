@@ -22,7 +22,16 @@ enum Feature {
     KingTwoStep,             // king moves after which the king would have an open line
     WhiteNextToKing,         // white pawns on the king's 4 neighbouring squares
     Constant,                // always 1: the structural advantage of one colour, which matters when comparing a score with a draw (0)
-    FeatureCount
+    KingEdgeDistance,        // distance from the king to the nearest edge
+    BlackNearKing,           // black pawns within 2 squares of the king in both directions
+    WhiteNearKing,           // white pawns within 2 squares of the king in both directions
+    BlackOnKingLines,        // black pawns on the king's row or column
+    KingOnThrone,            // 1 if the king is on the throne
+    // Piece-square tables
+    PstKing,
+    PstWhite = PstKing + 15,
+    PstBlack = PstWhite + 15,
+    FeatureCount = PstBlack + 15
 };
 
 using Features = std::array<int, FeatureCount>;
