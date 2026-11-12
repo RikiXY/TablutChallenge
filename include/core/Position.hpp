@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/Bitboard.hpp"
 #include "core/Board.hpp"
 #include <cstdint>
 #include <vector>
@@ -18,7 +19,9 @@ struct MoveEffects {
 };
 
 struct Position {
-    BoardMatrix board{};
+    Bitboard white = 0; // The white pawns exluding the king
+    Bitboard black = 0; // The black pawns
+    Bitboard king = 0;  // The king
     Side sideToMove = Side::White;
     Outcome outcome = Outcome::Ongoing;
     uint64_t hash = 0;
@@ -29,6 +32,31 @@ struct Position {
      * @return The starting position with White to move
      */
     static Position start(); // Static method: callable without an instance of the struct
+
+    /**
+     * @brief Reads the piece on a cell
+     *
+     * @param row The row of the cell
+     * @param col The column of the cell
+     * @return What stands on it
+     */
+    Piece at(int row, int col) const;
+
+    /**
+     * @brief Replaces a piece on a cell
+     *
+     * @param row The row of the cell
+     * @param col The column of the cell
+     * @param piece The piece to replace with
+     */
+    void put(int row, int col, Piece piece);
+
+    /**
+     * @brief Finds the square of the king
+     *
+     * @return row * 9 + col, or -1 if there is no king
+     */
+    int kingSquare() const;
 
     /**
      * @brief Generates the legal moves for every piece of the side to move, without modifying the position
@@ -58,6 +86,13 @@ struct Position {
      * @return How many pawns were captured
      */
     int apply(const Move &move);
+
+    /**
+     * @brief Finds the squares where a move can capture or where the king can escape
+     *
+     * @return The squares where a move can have an effect
+     */
+    Bitboard captureSquares() const;
 
     /**
      * @brief Calculates what a move would capture and whether it would end the game
@@ -100,3 +135,10 @@ struct Position {
  * @return The number of positions, without counting games that end before the last move
  */
 uint64_t perft(const Position &position, int depth);
+
+/**
+ * @brief Prints the board on the terminal
+ *
+ * @param position The position to print
+ */
+void printBoard(const Position &position);

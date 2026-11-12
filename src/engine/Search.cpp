@@ -252,16 +252,8 @@ private:
         if (depth == 0 && rays == 1)
             return staticScore(position, ply, epochStart);
 
-        int kingRow = 0;
-        int kingCol = 0;
-        for (int row = 0; row < 9; row++) {
-            for (int col = 0; col < 9; col++) {
-                if (position.board[row][col] == Piece::King) {
-                    kingRow = row;
-                    kingCol = col;
-                }
-            }
-        }
+        const int kingRow = position.kingSquare() / 9;
+        const int kingCol = position.kingSquare() % 9;
 
         int best = -(WIN - (ply + 2)); // +2 because the king can escape in one move and then Black can capture it in one move
         for (const Move &move : position.calculateLegalMoves()) {
@@ -324,22 +316,18 @@ private:
      * @param moves Where to add the moves
      */
     static void addQuietKingMoves(const Position &position, std::vector<Move> &moves) {
-        for (int row = 0; row < 9; row++) {
-            for (int col = 0; col < 9; col++) {
-                if (position.board[row][col] != Piece::King)
-                    continue;
-                for (const auto &[dRow, dCol] : directions) {
-                    int r = row + dRow;
-                    int c = col + dCol;
-                    while (isOnBoard(r, c) && position.board[r][c] == Piece::Empty && !isThrone(r, c) && !isCamp(r, c)) {
-                        const Move move{row, col, r, c};
-                        if (position.effects(move).captured == 0)
-                            moves.push_back(move);
-                        r += dRow;
-                        c += dCol;
-                    }
-                }
-                return;
+        if (!position.king)
+            return;
+        const int king = position.kingSquare();
+        const Bitboard blockers = position.white | position.black | tables.camps | bit(THRONE);
+        for (int direction = 0; direction < 4; direction++) {
+            for (int i = 0; i < tables.rayLength[king][direction]; i++) {
+                const int square = tables.ray[king][direction][i];
+                if (blockers & bit(square))
+                    break;
+                const Move move{king / 9, king % 9, square / 9, square % 9};
+                if (position.effects(move).captured == 0)
+                    moves.push_back(move);
             }
         }
     }
@@ -391,7 +379,7 @@ private:
      * @return true if the king moves
      */
     static bool isKingMove(const Position &position, const Child &child) {
-        return position.board[child.move.fromRow][child.move.fromCol] == Piece::King;
+        return position.king & bit(child.move.fromRow * 9 + child.move.fromCol);
     }
 
     /**

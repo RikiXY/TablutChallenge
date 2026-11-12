@@ -79,10 +79,9 @@ bool isNetworkLoaded() {
 Accumulator makeAccumulator(const Position &position) {
     Accumulator accumulator;
     accumulator.hidden = network->hiddenBiases;
-    for (int square = 0; square < 81; square++) {
-        const Piece piece = position.board[square / 9][square % 9];
-        if (piece != Piece::Empty)
-            addInput(accumulator.hidden, inputOf(piece, square));
+    for (Bitboard pieces = position.white | position.black | position.king; pieces; pieces &= pieces - 1) {
+        const int square = lowestSquare(pieces);
+        addInput(accumulator.hidden, inputOf(position.at(square / 9, square % 9), square));
     }
     if (position.sideToMove == Side::White)
         addInput(accumulator.hidden, 243);
@@ -91,11 +90,11 @@ Accumulator makeAccumulator(const Position &position) {
 
 Accumulator updateAccumulator(const Accumulator &accumulator, const Position &before, const Position &after) {
     Accumulator updated = accumulator;
-    for (int square = 0; square < 81; square++) {
-        const Piece old = before.board[square / 9][square % 9];
-        const Piece now = after.board[square / 9][square % 9];
-        if (old == now)
-            continue;
+    const Bitboard changed = (before.white ^ after.white) | (before.black ^ after.black) | (before.king ^ after.king);
+    for (Bitboard squares = changed; squares; squares &= squares - 1) {
+        const int square = lowestSquare(squares);
+        const Piece old = before.at(square / 9, square % 9);
+        const Piece now = after.at(square / 9, square % 9);
         if (old != Piece::Empty)
             addInput(updated.hidden, inputOf(old, square), -1);
         if (now != Piece::Empty)

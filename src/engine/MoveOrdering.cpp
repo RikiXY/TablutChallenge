@@ -33,10 +33,13 @@ void MoveOrdering::start(int maxDepth) {
 std::vector<Child> MoveOrdering::makeChildren(const Position &position, const std::vector<Move> &moves, int ply, Move firstMove, const Move &previous) {
     const auto &killer = killers[static_cast<size_t>(ply)];
     const Move &counterMove = counterMoves[fromTo(previous)];
+    const Bitboard captureSquares = position.captureSquares();
     std::vector<Child> children;
     children.reserve(moves.size());
     for (const Move &move : moves) {
-        Child child{move, position.effects(move), 0};
+        const bool capturing = captureSquares & bit(move.toRow * 9 + move.toCol);
+        const bool kingToEdge = (position.king & bit(move.fromRow * 9 + move.fromCol)) && (tables.edges & bit(move.toRow * 9 + move.toCol));
+        Child child{move, capturing || kingToEdge ? position.effects(move) : MoveEffects{}, 0};
         if (move == firstMove)
             child.order = FIRST_MOVE_ORDER;
         else if (child.effects.outcome != Outcome::Ongoing)

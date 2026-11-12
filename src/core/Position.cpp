@@ -33,154 +33,99 @@ constexpr ZobristKeys makeKeys() {
 constexpr ZobristKeys zobrist = makeKeys();
 
 /**
- * @brief Gets the Zobrist key of a piece on a cell
+ * @brief Gets the Zobrist key of a piece on a square
  *
  * @param piece The piece
- * @param row The row of the cell
- * @param col The column of the cell
- * @return The key (always 0 for an empty cell)
+ * @param square The square
+ * @return The key (always 0 for an empty square)
  */
-uint64_t key(Piece piece, int row, int col) {
-    return zobrist.piece[static_cast<int>(piece)][row * 9 + col];
+uint64_t key(Piece piece, int square) {
+    return zobrist.piece[static_cast<int>(piece)][square];
 }
 
 /**
- * @brief Checks whether a piece can stop on a cell
+ * @brief Makes a move from two squares
  *
- * @param fromRow The row the piece starts from
- * @param fromCol The column the piece starts from
- * @param toRow The row of the target cell
- * @param toCol The column of the target cell
- * @return true if the piece can stop there
+ * @param from The square of the piece
+ * @param to The square it moves to
+ * @return The move
  */
-bool isLegal(int fromRow, int fromCol, int toRow, int toCol) {
-    if (isThrone(toRow, toCol))
-        return false;
-    int targetCamp = campOf(toRow, toCol);
-    return targetCamp == -1 || targetCamp == campOf(fromRow, fromCol); // A pawn can move to a camp only if it is already in that same camp
-}
-
-/**
- * @brief Checks whether a piece belongs to White
- *
- * @param piece The piece
- * @return true for a white pawn or the king
- */
-bool isWhitePiece(Piece piece) {
-    return piece == Piece::White || piece == Piece::King;
+Move makeMove(int from, int to) {
+    return {from / 9, from % 9, to / 9, to % 9};
 }
 
 /**
  * @brief Generates all legal moves for a given piece
  *
  * @param moves Where to add the moves
- * @param board The board
- * @param row The row of the piece
- * @param col The column of the piece
+ * @param from The square of the piece
+ * @param blockers The cells the piece can't stop on or pass through
  */
-void addMoves(std::vector<Move> &moves, const BoardMatrix &board, int row, int col) {
-    for (const auto &[dRow, dCol] : directions) {
-        int toRow = row + dRow;
-        int toCol = col + dCol;
-
-        while (isOnBoard(toRow, toCol) && board[toRow][toCol] == Piece::Empty && isLegal(row, col, toRow, toCol)) {
-            moves.push_back({row, col, toRow, toCol}); // Initialize a Move object and append it to the vector
-            toRow += dRow;
-            toCol += dCol;
+void addMoves(std::vector<Move> &moves, int from, Bitboard blockers) {
+    for (int direction = 0; direction < 4; direction++) {
+        for (int i = 0; i < tables.rayLength[from][direction]; i++) {
+            const int to = tables.ray[from][direction][i];
+            if (blockers & bit(to))
+                break;
+            moves.push_back(makeMove(from, to));
         }
     }
-}
-
-// After a move and before the captures
-struct BoardAfterMove {
-    const BoardMatrix &board;
-    const Move &move;
-
-    /**
-     * @brief Reads a cell
-     *
-     * @param row The row of the cell
-     * @param col The column of the cell
-     * @return What stands on it after the move
-     */
-    Piece at(int row, int col) const {
-        if (row == move.toRow && col == move.toCol)
-            return board[move.fromRow][move.fromCol];
-        if (row == move.fromRow && col == move.fromCol)
-            return Piece::Empty;
-        return board[row][col];
-    }
-};
-
-/**
- * @brief Checks whether a cell can be used to capture a black pawn
- *
- * @param board The board after the move
- * @param row The row of the cell
- * @param col The column of the cell
- * @return true for a white piece, the throne or a camp cell that isn't a center
- */
-bool isHostileToBlack(const BoardAfterMove &board, int row, int col) {
-    return isWhitePiece(board.at(row, col)) || isThrone(row, col) || (isCamp(row, col) && !isCampCenter(row, col));
-}
-
-/**
- * @brief Checks whether a cell can be used to capture a white pawn
- *
- * @param board The board after the move
- * @param row The row of the cell
- * @param col The column of the cell
- * @return true for a black pawn, the throne or a camp cell
- */
-bool isHostileToWhite(const BoardAfterMove &board, int row, int col) {
-    return board.at(row, col) == Piece::Black || isThrone(row, col) || isCamp(row, col);
 }
 
 /**
  * @brief Checks whether the king is captured by the black pawn that just moved next to it
  *
- * @param board The board after the move
- * @param kingRow The row of the king
- * @param kingCol The column of the king
- * @param beyondRow The row of the cell on the other side of the king, seen from the pawn that moved
- * @param beyondCol The column of that cell
+ * @param black The black pawns after the move
+ * @param king The square of the king
+ * @param beyond The square on the other side of the king, seen from the pawn that moved, -1 if off the board
  * @return true if the king is captured
  */
-bool isKingCaptured(const BoardAfterMove &board, int kingRow, int kingCol, int beyondRow, int beyondCol) {
-    const bool onOrNextToThrone = std::abs(kingRow - 4) + std::abs(kingCol - 4) <= 1; // Manhattan distance between the king and the throne
+bool isKingCaptured(Bitboard black, int king, int beyond) {
+    const bool onOrNextToThrone = std::abs(king / 9 - 4) + std::abs(king % 9 - 4) <= 1; // Manhattan distance between the king and the throne
 
-    if (onOrNextToThrone) {
-        for (const auto &[dRow, dCol] : directions) {
-            const int row = kingRow + dRow;
-            const int col = kingCol + dCol;
-            if (!isThrone(row, col) && board.at(row, col) != Piece::Black) // If at least one of the sides is neither throne nor a black pawn, the king is not captured
-                return false;
-        }
-        return true;
-    }
+    if (onOrNextToThrone)
+        return (tables.neighbours[king] & ~bit(THRONE) & ~black) == 0;
 
-    return isOnBoard(beyondRow, beyondCol) && (board.at(beyondRow, beyondCol) == Piece::Black || isCamp(beyondRow, beyondCol));
+    return beyond != -1 && ((black | tables.camps) & bit(beyond));
 }
 
 } // namespace
 
+Piece Position::at(int row, int col) const {
+    const Bitboard square = bit(row * 9 + col);
+    if (white & square)
+        return Piece::White;
+    if (black & square)
+        return Piece::Black;
+    if (king & square)
+        return Piece::King;
+    return Piece::Empty;
+}
+
+void Position::put(int row, int col, Piece piece) {
+    const Bitboard square = bit(row * 9 + col);
+    white &= ~square;
+    black &= ~square;
+    king &= ~square;
+    if (piece == Piece::White)
+        white |= square;
+    else if (piece == Piece::Black)
+        black |= square;
+    else if (piece == Piece::King)
+        king |= square;
+}
+
+int Position::kingSquare() const {
+    return king ? lowestSquare(king) : -1;
+}
+
 Position Position::start() {
     Position position;
-
-    // Set the black pawns in the camps
-    for (int i = 0; i < 9; i++)
-        for (int j = 0; j < 9; j++)
-            if (isCamp(i, j))
-                position.board[i][j] = Piece::Black;
-
-    // Set the white pawns in the cross around the king
-    for (int i : {2, 3, 5, 6}) {
-        position.board[i][4] = Piece::White;
-        position.board[4][i] = Piece::White;
-    }
-    // Set the king in the throne
-    position.board[4][4] = Piece::King;
-
+    position.black = tables.camps; // The black pawns in the camps
+    // The white pawns in the cross around the king
+    for (int i : {2, 3, 5, 6})
+        position.white |= bit(i * 9 + 4) | bit(4 * 9 + i);
+    position.king = bit(THRONE); // The king in the throne
     position.computeHash();
     return position;
 }
@@ -191,13 +136,10 @@ std::vector<Move> Position::calculateLegalMoves() const {
     if (outcome != Outcome::Ongoing)
         return moves;
 
-    for (int row = 0; row < 9; row++) {
-        for (int col = 0; col < 9; col++) {
-            const Piece piece = board[row][col];
-            const bool belongsToCurrentSide = sideToMove == Side::White ? isWhitePiece(piece) : piece == Piece::Black;
-            if (belongsToCurrentSide)
-                addMoves(moves, board, row, col);
-        }
+    const Bitboard occupied = white | black | king;
+    for (Bitboard own = sideToMove == Side::White ? white | king : black; own; own &= own - 1) {
+        const int from = lowestSquare(own);
+        addMoves(moves, from, occupied | forbiddenFrom(from));
     }
     return moves;
 }
@@ -206,19 +148,11 @@ bool Position::hasLegalMove() const {
     if (outcome != Outcome::Ongoing)
         return false;
 
-    for (int row = 0; row < 9; row++) {
-        for (int col = 0; col < 9; col++) {
-            const Piece piece = board[row][col];
-            const bool belongsToCurrentSide = sideToMove == Side::White ? isWhitePiece(piece) : piece == Piece::Black;
-            if (!belongsToCurrentSide)
-                continue;
-            for (const auto &[dRow, dCol] : directions) {
-                const int toRow = row + dRow;
-                const int toCol = col + dCol;
-                if (isOnBoard(toRow, toCol) && board[toRow][toCol] == Piece::Empty && isLegal(row, col, toRow, toCol))
-                    return true;
-            }
-        }
+    const Bitboard occupied = white | black | king;
+    for (Bitboard own = sideToMove == Side::White ? white | king : black; own; own &= own - 1) {
+        const int from = lowestSquare(own);
+        if (tables.neighbours[from] & ~(occupied | forbiddenFrom(from)))
+            return true;
     }
     return false;
 }
@@ -227,69 +161,48 @@ std::vector<Move> Position::calculateTacticalMoves() const {
     std::vector<Move> moves;
     if (outcome != Outcome::Ongoing)
         return moves;
-    const auto isOwn = [&](Piece piece) { return sideToMove == Side::White ? isWhitePiece(piece) : piece == Piece::Black; };
+    const Bitboard own = sideToMove == Side::White ? white | king : black;
+    const Bitboard occupied = white | black | king;
 
     // Finds all the empty cells that are next to an opponent's piece (the only viable ones for a capture)
-    std::array<std::array<bool, 9>, 9> nearOpponent{};
-    for (int row = 0; row < 9; row++) {
-        for (int col = 0; col < 9; col++) {
-            if (board[row][col] == Piece::Empty || isOwn(board[row][col]))
-                continue;
-            for (const auto &[dRow, dCol] : directions) {
-                const int r = row + dRow;
-                const int c = col + dCol;
-                if (isOnBoard(r, c) && board[r][c] == Piece::Empty)
-                    nearOpponent[r][c] = true;
-            }
-        }
-    }
+    Bitboard nearOpponent = 0;
+    for (Bitboard opponent = occupied & ~own; opponent; opponent &= opponent - 1)
+        nearOpponent |= tables.neighbours[lowestSquare(opponent)];
+    nearOpponent &= ~occupied;
 
+    // The king also wins on the edge cells next to an opponent
+    const Bitboard edgesNearOpponent = sideToMove == Side::White ? nearOpponent & tables.edges : 0;
     std::vector<Move> candidates;
-    for (int row = 0; row < 9; row++) {
-        for (int col = 0; col < 9; col++) {
-            if (!nearOpponent[row][col])
-                continue;
-            for (const auto &[dRow, dCol] : directions) {
-                // Find the first piece of the side to move in this direction
-                int fromRow = row + dRow;
-                int fromCol = col + dCol;
-                while (isOnBoard(fromRow, fromCol) && board[fromRow][fromCol] == Piece::Empty) {
-                    fromRow += dRow;
-                    fromCol += dCol;
-                }
-                if (!isOnBoard(fromRow, fromCol) || !isOwn(board[fromRow][fromCol]))
-                    continue;
-                // Check that every cell between the start and the end is legal
-                bool reachable = true;
-                int r = row;
-                int c = col;
-                while (reachable && (r != fromRow || c != fromCol)) {
-                    reachable = isLegal(fromRow, fromCol, r, c);
-                    r += dRow;
-                    c += dCol;
-                }
-                if (reachable)
-                    candidates.push_back({fromRow, fromCol, row, col});
+    for (Bitboard targets = captureSquares() | edgesNearOpponent; targets; targets &= targets - 1) {
+        const int to = lowestSquare(targets);
+        for (int direction = 0; direction < 4; direction++) {
+            // Find the first piece in this direction, saving the cells crossed to reach the target
+            Bitboard path = bit(to);
+            int from = -1;
+            for (int i = 0; i < tables.rayLength[to][direction] && from == -1; i++) {
+                const int square = tables.ray[to][direction][i];
+                if (occupied & bit(square))
+                    from = square;
+                else
+                    path |= bit(square);
             }
+            // The piece must belong to the side to move and be able to cross every cell up to the target
+            if (from != -1 && (own & bit(from)) && !(path & forbiddenFrom(from)))
+                candidates.push_back(makeMove(from, to));
         }
     }
 
-    // White wins by moving the king to the edge
-    if (sideToMove == Side::White) {
-        for (int row = 0; row < 9; row++) {
-            for (int col = 0; col < 9; col++) {
-                if (board[row][col] != Piece::King)
-                    continue;
-                for (const auto &[dRow, dCol] : directions) {
-                    int r = row + dRow;
-                    int c = col + dCol;
-                    while (isOnBoard(r, c) && board[r][c] == Piece::Empty && isLegal(row, col, r, c)) {
-                        if (isEdge(r, c) && !nearOpponent[r][c])
-                            candidates.push_back({row, col, r, c});
-                        r += dRow;
-                        c += dCol;
-                    }
-                }
+    // White wins by moving the king to the edge (does not duplicate the edge cells next to an opponent)
+    if (sideToMove == Side::White && king) {
+        const int from = kingSquare();
+        const Bitboard blockers = occupied | forbiddenFrom(from);
+        for (int direction = 0; direction < 4; direction++) {
+            for (int i = 0; i < tables.rayLength[from][direction]; i++) {
+                const int to = tables.ray[from][direction][i];
+                if (blockers & bit(to))
+                    break;
+                if ((tables.edges & bit(to)) && !(nearOpponent & bit(to)))
+                    candidates.push_back(makeMove(from, to));
             }
         }
     }
@@ -302,35 +215,56 @@ std::vector<Move> Position::calculateTacticalMoves() const {
     return moves;
 }
 
+Bitboard Position::captureSquares() const {
+    const bool whiteToMove = sideToMove == Side::White;
+    const Bitboard hostile = whiteToMove ? white | king | bit(THRONE) | (tables.camps & ~tables.campCenters) : black | bit(THRONE) | tables.camps;
+    Bitboard squares = whiteToMove || !king ? 0 : tables.neighbours[kingSquare()];
+    for (Bitboard targets = whiteToMove ? black : white; targets; targets &= targets - 1) {
+        const int target = lowestSquare(targets);
+        for (int direction = 0; direction < 4; direction++) {
+            const int beyond = tables.neighbour[target][direction ^ 1];
+            if (beyond != -1 && (hostile & bit(beyond)) && tables.neighbour[target][direction] != -1)
+                squares |= bit(tables.neighbour[target][direction]);
+        }
+    }
+    return squares & ~(white | black | king);
+}
+
 MoveEffects Position::effects(const Move &move) const {
-    // Simulate the server's capture rules locally
-    const BoardAfterMove after{board, move};
+    // Simulate the server's capture rules locally on the pieces after the move
+    const int from = move.fromRow * 9 + move.fromCol;
+    const int to = move.toRow * 9 + move.toCol;
+    const Bitboard moved = bit(from) | bit(to);
+    Bitboard whiteAfter = white;
+    Bitboard blackAfter = black;
+    Bitboard kingAfter = king;
+    if (king & bit(from))
+        kingAfter ^= moved;
+    else if (white & bit(from))
+        whiteAfter ^= moved;
+    else
+        blackAfter ^= moved;
+
+    const Bitboard hostileToBlack = whiteAfter | kingAfter | bit(THRONE) | (tables.camps & ~tables.campCenters);
+    const Bitboard hostileToWhite = blackAfter | bit(THRONE) | tables.camps;
+
     MoveEffects result;
     for (int direction = 0; direction < 4; direction++) {
-        const auto [dRow, dCol] = directions[direction];
-        // (row, col) is the neighbour that may be captured
-        const int row = move.toRow + dRow;
-        const int col = move.toCol + dCol;
-        if (!isOnBoard(row, col))
+        const int target = tables.neighbour[to][direction]; // The neighbour that may be captured
+        if (target == -1)
             continue;
-        const Piece target = after.at(row, col);
-
-        // (beyondRow, beyondCol) is the cell after the neighbour
-        const int beyondRow = row + dRow;
-        const int beyondCol = col + dCol;
-        const bool beyondOnBoard = isOnBoard(beyondRow, beyondCol);
-
-        const bool capturesBlack = sideToMove == Side::White && target == Piece::Black && beyondOnBoard && isHostileToBlack(after, beyondRow, beyondCol);
-        const bool capturesWhite = sideToMove == Side::Black && target == Piece::White && beyondOnBoard && isHostileToWhite(after, beyondRow, beyondCol);
+        const int beyond = tables.neighbour[target][direction]; // The cell after the neighbour
+        const bool capturesBlack = sideToMove == Side::White && (blackAfter & bit(target)) && beyond != -1 && (hostileToBlack & bit(beyond));
+        const bool capturesWhite = sideToMove == Side::Black && (whiteAfter & bit(target)) && beyond != -1 && (hostileToWhite & bit(beyond));
         if (capturesBlack || capturesWhite) {
             result.capturedDirections = static_cast<uint8_t>(result.capturedDirections | 1 << direction);
             result.captured++;
-        } else if (sideToMove == Side::Black && target == Piece::King && isKingCaptured(after, row, col, beyondRow, beyondCol)) {
+        } else if (sideToMove == Side::Black && (kingAfter & bit(target)) && isKingCaptured(blackAfter, target, beyond)) {
             result.outcome = Outcome::BlackWins;
         }
     }
 
-    if (after.at(move.toRow, move.toCol) == Piece::King && isEdge(move.toRow, move.toCol))
+    if ((kingAfter & bit(to)) && (tables.edges & bit(to)))
         result.outcome = Outcome::WhiteWins;
     return result;
 }
@@ -340,25 +274,29 @@ int Position::apply(const Move &move) {
 }
 
 uint64_t Position::hashAfterQuietMove(const Move &move) const {
-    const Piece piece = board[move.fromRow][move.fromCol];
-    return hash ^ key(piece, move.fromRow, move.fromCol) ^ key(piece, move.toRow, move.toCol) ^ zobrist.whiteToMove;
+    const Piece piece = at(move.fromRow, move.fromCol);
+    return hash ^ key(piece, move.fromRow * 9 + move.fromCol) ^ key(piece, move.toRow * 9 + move.toCol) ^ zobrist.whiteToMove;
 }
 
 int Position::apply(const Move &move, const MoveEffects &effects) {
     // Apply the move to the board
-    const Piece pieceToMove = board[move.fromRow][move.fromCol];
-    board[move.toRow][move.toCol] = pieceToMove;
-    board[move.fromRow][move.fromCol] = Piece::Empty;
-    hash ^= key(pieceToMove, move.fromRow, move.fromCol) ^ key(pieceToMove, move.toRow, move.toCol);
+    const int from = move.fromRow * 9 + move.fromCol;
+    const int to = move.toRow * 9 + move.toCol;
+    const Piece pieceToMove = at(move.fromRow, move.fromCol);
+    Bitboard &pieces = pieceToMove == Piece::King ? king : pieceToMove == Piece::White ? white
+                                                                                       : black;
+    pieces ^= bit(from) | bit(to);
+    hash ^= key(pieceToMove, from) ^ key(pieceToMove, to);
 
     // Remove the captured pawns
+    Bitboard &opponent = sideToMove == Side::White ? black : white;
+    const Piece captured = sideToMove == Side::White ? Piece::Black : Piece::White;
     for (int direction = 0; direction < 4; direction++) {
         if (!(effects.capturedDirections & (1 << direction)))
             continue;
-        const int row = move.toRow + directions[direction][0];
-        const int col = move.toCol + directions[direction][1];
-        hash ^= key(board[row][col], row, col);
-        board[row][col] = Piece::Empty;
+        const int square = tables.neighbour[to][direction];
+        opponent &= ~bit(square);
+        hash ^= key(captured, square);
     }
 
     if (effects.outcome != Outcome::Ongoing)
@@ -370,9 +308,8 @@ int Position::apply(const Move &move, const MoveEffects &effects) {
 
 void Position::computeHash() {
     hash = sideToMove == Side::White ? zobrist.whiteToMove : 0;
-    for (int row = 0; row < 9; row++)
-        for (int col = 0; col < 9; col++)
-            hash ^= key(board[row][col], row, col);
+    for (int square = 0; square < 81; square++)
+        hash ^= key(at(square / 9, square % 9), square);
 }
 
 uint64_t perft(const Position &position, int depth) {

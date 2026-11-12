@@ -37,13 +37,13 @@ Position parsePosition(const std::string &json) {
         for (int j = 0; j < 9; j++) {
             const std::string_view piece = jsonBoard[i][j].GetString();
             if (piece == "EMPTY" || piece == "THRONE") // THRONE is the server's name for an empty throne
-                position.board[i][j] = Piece::Empty;
+                position.put(i, j, Piece::Empty);
             else if (piece == "WHITE")
-                position.board[i][j] = Piece::White;
+                position.put(i, j, Piece::White);
             else if (piece == "BLACK")
-                position.board[i][j] = Piece::Black;
+                position.put(i, j, Piece::Black);
             else if (piece == "KING")
-                position.board[i][j] = Piece::King;
+                position.put(i, j, Piece::King);
             else
                 throw std::invalid_argument("Anomaly in JSON board detected");
         }

@@ -1,4 +1,5 @@
 #include "core/Board.hpp"
+#include "core/Position.hpp"
 #include <iostream>
 
 bool isEdge(int row, int col) {
@@ -9,7 +10,7 @@ bool isCampCenter(int row, int col) {
     return (row == 0 && col == 4) || (row == 8 && col == 4) || (row == 4 && col == 0) || (row == 4 && col == 8);
 }
 
-void printBoard(const BoardMatrix &board) {
+void printBoard(const Position &position) {
     std::cout << "\n     a b c d e f g h i\n";
     std::cout << "   +-------------------+\n";
 
@@ -17,7 +18,7 @@ void printBoard(const BoardMatrix &board) {
         std::cout << " " << i + 1 << " | ";
         for (int j = 0; j < 9; j++) {
             const char *symbol = "?";
-            switch (board[i][j]) {
+            switch (position.at(i, j)) {
             case Piece::Empty:
                 if (i == 4 && j == 4)
                     symbol = "T";

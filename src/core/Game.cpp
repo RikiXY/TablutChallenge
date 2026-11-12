@@ -11,16 +11,11 @@ namespace { // Functions declared here are only accessible within this file
 /**
  * @brief Counts the pieces on the board
  *
- * @param board The board
+ * @param position The position
  * @return The number of pieces on the board
  */
-int countPieces(const BoardMatrix &board) {
-    int count = 0;
-    for (const auto &row : board)
-        for (Piece piece : row)
-            if (piece != Piece::Empty)
-                count++;
-    return count;
+int countPieces(const Position &position) {
+    return popcount(position.white | position.black | position.king);
 }
 
 /**
@@ -47,7 +42,7 @@ const char *turnName(const Position &position) {
 
 void Game::record(const Position &newPosition) {
     if (started) {
-        const bool captured = countPieces(newPosition.board) < countPieces(position.board);
+        const bool captured = countPieces(newPosition) < countPieces(position);
         history.push(newPosition, captured);
     }
     position = newPosition;
@@ -81,7 +76,7 @@ void Game::start(ServerConnector &connection, const Config &config) {
         const auto receivedAt = std::chrono::steady_clock::now();
         record(parsePosition(message));
         std::cout << "State received" << std::endl;
-        printBoard(position.board);
+        printBoard(position);
         std::cout << std::endl
                   << "Turn: " << turnName(position) << std::endl;
 

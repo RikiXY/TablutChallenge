@@ -1,6 +1,7 @@
 #include "engine/Evaluation.hpp"
 #include "engine/Network.hpp"
 #include <algorithm>
+#include <array>
 #include <cstdlib>
 
 const Weights defaultWeights = {
@@ -74,85 +75,68 @@ const Weights defaultWeights = {
 
 namespace {
 
-/**
- * @brief Checks whether a cell stops the king
- *
- * @param board The board
- * @param row The row of the cell
- * @param col The column of the cell
- * @return true if the king can't go there or past it
- */
-bool blocksKing(const BoardMatrix &board, int row, int col) {
-    const Piece piece = board[row][col];
-    return (piece != Piece::Empty && piece != Piece::King) || isCamp(row, col) || isThrone(row, col);
-}
-
-/**
- * @brief Finds the piece-square class of a cell
- *
- * @param row The row of the cell
- * @param col The column of the cell
- * @return The class, from 0 (a1) to 14 (e5)
- */
-int squareClass(int row, int col) {
-    const int r = std::min(row, 8 - row);
-    const int c = std::min(col, 8 - col);
-    const int low = std::min(r, c);
-    const int high = std::max(r, c);
-    return high * (high + 1) / 2 + low;
-}
-
-/**
- * @brief Checks whether a cell guards a corner (b3 b7 h3 h7 c2 c8 g2 g8)
- *
- * @param row The row of the cell
- * @param col The column of the cell
- * @return true if it's one of those cells
- */
-bool isCornerGuard(int row, int col) {
-    return ((row == 2 || row == 6) && (col == 1 || col == 7)) || ((row == 1 || row == 7) && (col == 2 || col == 6));
-}
-
-struct Ray {
-    int length = 0;
-    bool reachesEdge = false;
+// Per-square tables of the features
+struct FeatureTables {
+    std::array<int8_t, 81> squareClass{}; // The piece-square class
+    std::array<Bitboard, 81> near{};      // The squares within 2 rows and 2 columns, the square excluded
+    std::array<Bitboard, 81> lines{};     // The row and the column, the square excluded
+    Bitboard cornerGuards = 0;            // b3 b7 h3 h7 c2 c8 g2 g8
 };
 
 /**
- * @brief Creates a ray from the king in a direction
+ * @brief Builds the tables at compile time
  *
- * @param board The board
- * @param kingRow The row of the king
- * @param kingCol The column of the king
- * @param dRow The row step of the direction
- * @param dCol The column step of the direction
- * @return How many cells the king can move along the line and whether it reaches the edge
+ * @return The tables
  */
-Ray kingRay(const BoardMatrix &board, int kingRow, int kingCol, int dRow, int dCol) {
-    Ray ray;
-    int row = kingRow + dRow;
-    int col = kingCol + dCol;
-    while (isOnBoard(row, col) && !blocksKing(board, row, col)) {
-        ray.length++;
-        row += dRow;
-        col += dCol;
+constexpr FeatureTables makeFeatureTables() {
+    FeatureTables featureTables;
+    for (int square = 0; square < 81; square++) {
+        const int row = square / 9;
+        const int col = square % 9;
+        const int r = std::min(row, 8 - row);
+        const int c = std::min(col, 8 - col);
+        const int low = std::min(r, c);
+        const int high = std::max(r, c);
+        featureTables.squareClass[square] = static_cast<int8_t>(high * (high + 1) / 2 + low);
+        if (((row == 2 || row == 6) && (col == 1 || col == 7)) || ((row == 1 || row == 7) && (col == 2 || col == 6)))
+            featureTables.cornerGuards |= bit(square);
+        for (int other = 0; other < 81; other++) {
+            if (other == square)
+                continue;
+            const int otherRow = other / 9;
+            const int otherCol = other % 9;
+            if (otherRow >= row - 2 && otherRow <= row + 2 && otherCol >= col - 2 && otherCol <= col + 2)
+                featureTables.near[square] |= bit(other);
+            if (otherRow == row || otherCol == col)
+                featureTables.lines[square] |= bit(other);
+        }
     }
-    ray.reachesEdge = ray.length > 0 && !isOnBoard(row, col);
-    return ray;
+    return featureTables;
+}
+
+constexpr FeatureTables featureTables = makeFeatureTables();
+
+/**
+ * @brief Finds the cells that stop the king
+ *
+ * @param position The position
+ * @return The blockers
+ */
+Bitboard kingBlockers(const Position &position) {
+    return position.white | position.black | tables.camps | bit(THRONE);
 }
 
 /**
- * @brief Counts how many directions have a clear line to the edge from the king's cell
+ * @brief Counts how many directions have a clear line to the edge from a square
  *
- * @param board The board
- * @param row The row of the king
- * @param col The column of the king
+ * @param square The square of the king
+ * @param blockers The cells that stop the king
  * @return The number of open lines
  */
-int openRays(const BoardMatrix &board, int row, int col) {
+int openRays(int square, Bitboard blockers) {
     int count = 0;
-    for (const auto &[dRow, dCol] : directions)
-        if (kingRay(board, row, col, dRow, dCol).reachesEdge)
+    for (int direction = 0; direction < 4; direction++)
+        if (tables.rayLength[square][direction] > 0 && !(tables.rayMask[square][direction] & blockers))
             count++;
     return count;
 }
@@ -160,80 +144,52 @@ int openRays(const BoardMatrix &board, int row, int col) {
 } // namespace
 
 int kingOpenRays(const Position &position) {
-    for (int row = 0; row < 9; row++)
-        for (int col = 0; col < 9; col++)
-            if (position.board[row][col] == Piece::King)
-                return openRays(position.board, row, col);
-    return 0;
+    return position.king ? openRays(position.kingSquare(), kingBlockers(position)) : 0;
 }
 
 Features computeFeatures(const Position &position) {
     Features features{};
     features[Constant] = 1;
-    int kingRow = -1;
-    int kingCol = -1;
-
-    for (int row = 0; row < 9; row++) {
-        for (int col = 0; col < 9; col++) {
-            const Piece piece = position.board[row][col];
-            if (piece == Piece::White) {
-                features[WhitePawns]++;
-                features[PstWhite + squareClass(row, col)]++;
-            } else if (piece == Piece::Black) {
-                features[BlackPawns]++;
-                features[PstBlack + squareClass(row, col)]++;
-            } else if (piece == Piece::King) {
-                kingRow = row;
-                kingCol = col;
-                features[PstKing + squareClass(row, col)] = 1;
-            }
-        }
-    }
-    if (kingRow == -1) // only in a finished game (captured king): no king features
+    features[WhitePawns] = popcount(position.white);
+    features[BlackPawns] = popcount(position.black);
+    for (Bitboard pawns = position.white; pawns; pawns &= pawns - 1)
+        features[PstWhite + featureTables.squareClass[lowestSquare(pawns)]]++;
+    for (Bitboard pawns = position.black; pawns; pawns &= pawns - 1)
+        features[PstBlack + featureTables.squareClass[lowestSquare(pawns)]]++;
+    if (!position.king) // only in a finished game (captured king): no king features
         return features;
 
-    for (const auto &[dRow, dCol] : directions) {
-        const Ray ray = kingRay(position.board, kingRow, kingCol, dRow, dCol);
-        features[KingMobility] += ray.length;
-        if (ray.reachesEdge)
-            features[KingOpenRays]++;
-        for (int step = 1; step <= ray.length; step++)
-            if (openRays(position.board, kingRow + step * dRow, kingCol + step * dCol) > 0)
+    const int king = position.kingSquare();
+    const int kingRow = king / 9;
+    const int kingCol = king % 9;
+    features[PstKing + featureTables.squareClass[king]] = 1;
+
+    const Bitboard blockers = kingBlockers(position);
+    for (int direction = 0; direction < 4; direction++) {
+        for (int i = 0; i < tables.rayLength[king][direction]; i++) {
+            const int square = tables.ray[king][direction][i];
+            if (blockers & bit(square))
+                break;
+            features[KingMobility]++;
+            if (openRays(square, blockers) > 0)
                 features[KingTwoStep]++;
-
-        const int row = kingRow + dRow;
-        const int col = kingCol + dCol;
-        if (!isOnBoard(row, col))
-            continue;
-        if (position.board[row][col] == Piece::Black)
-            features[BlackNextToKing]++;
-        else if (position.board[row][col] == Piece::White)
-            features[WhiteNextToKing]++;
-        if (isCamp(row, col) || isThrone(row, col))
-            features[CampOrThroneNextToKing]++;
-    }
-
-    features[KingDistanceFromThrone] = std::abs(kingRow - 4) + std::abs(kingCol - 4);
-
-    features[KingEdgeDistance] = std::min(std::min(kingRow, 8 - kingRow), std::min(kingCol, 8 - kingCol));
-    features[KingOnThrone] = isThrone(kingRow, kingCol);
-
-    for (int row = 0; row < 9; row++) {
-        for (int col = 0; col < 9; col++) {
-            const Piece piece = position.board[row][col];
-            const bool nearKing = std::abs(row - kingRow) <= 2 && std::abs(col - kingCol) <= 2;
-            if (piece == Piece::White && nearKing)
-                features[WhiteNearKing]++;
-            if (piece != Piece::Black)
-                continue;
-            if (isCornerGuard(row, col))
-                features[BlackCornerGuards]++;
-            if (nearKing)
-                features[BlackNearKing]++;
-            if (row == kingRow || col == kingCol)
-                features[BlackOnKingLines]++;
         }
     }
+    features[KingOpenRays] = openRays(king, blockers);
+
+    const Bitboard neighbours = tables.neighbours[king];
+    features[BlackNextToKing] = popcount(position.black & neighbours);
+    features[WhiteNextToKing] = popcount(position.white & neighbours);
+    features[CampOrThroneNextToKing] = popcount((tables.camps | bit(THRONE)) & neighbours);
+
+    features[KingDistanceFromThrone] = std::abs(kingRow - 4) + std::abs(kingCol - 4);
+    features[KingEdgeDistance] = std::min(std::min(kingRow, 8 - kingRow), std::min(kingCol, 8 - kingCol));
+    features[KingOnThrone] = king == THRONE;
+
+    features[BlackCornerGuards] = popcount(position.black & featureTables.cornerGuards);
+    features[BlackNearKing] = popcount(position.black & featureTables.near[king]);
+    features[WhiteNearKing] = popcount(position.white & featureTables.near[king]);
+    features[BlackOnKingLines] = popcount(position.black & featureTables.lines[king]);
 
     features[EscapeWhiteToMove] = position.sideToMove == Side::White && features[KingOpenRays] > 0;
     features[DoubleEscapeBlackToMove] = position.sideToMove == Side::Black && features[KingOpenRays] > 1;
