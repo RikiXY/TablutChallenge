@@ -16,6 +16,12 @@ struct MoveEffects {
     uint8_t capturedDirections = 0; // Bit d = 1 if the neighbour in directions[d] gets captured
     int captured = 0;
     Outcome outcome = Outcome::Ongoing;
+    bool operator==(const MoveEffects &) const = default;
+};
+
+struct TacticalMove {
+    Move move;
+    MoveEffects effects;
 };
 
 struct Position {
@@ -71,11 +77,11 @@ struct Position {
     bool hasLegalMove() const;
 
     /**
-     * @brief Generates only the legal moves that capture or win
+     * @brief Generates only the legal moves that capture or win, with their effects
      *
      * @param moves Where to write the moves
      */
-    void calculateTacticalMoves(std::vector<Move> &moves) const;
+    void calculateTacticalMoves(std::vector<TacticalMove> &moves) const;
 
     /**
      * @brief Plays a move: moves the piece, removes the captured pawns and updates the outcome, the side to move and the hash

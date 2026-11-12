@@ -38,7 +38,7 @@ private:
 
     std::vector<std::vector<Move>> moveLists;
     std::vector<std::vector<Child>> childLists;
-    std::vector<std::vector<Move>> tacticalLists;
+    std::vector<std::vector<TacticalMove>> tacticalLists;
 
 public:
     bool canStop = false;
@@ -209,10 +209,10 @@ private:
      * @return The score from the side to move's point of view
      */
     int quiescence(const Position &position, int alpha, int beta, int ply, int depth, size_t epochStart) {
-        std::vector<Move> &moves = tacticalLists[static_cast<size_t>(ply)];
+        std::vector<TacticalMove> &moves = tacticalLists[static_cast<size_t>(ply)];
         position.calculateTacticalMoves(moves);
-        for (const Move &move : moves)
-            if (position.effects(move).outcome != Outcome::Ongoing)
+        for (const TacticalMove &move : moves)
+            if (move.effects.outcome != Outcome::Ongoing)
                 return WIN - (ply + 1);
 
         if (position.sideToMove == Side::Black) {
@@ -229,14 +229,13 @@ private:
         if (position.sideToMove == Side::White)
             addQuietKingMoves(position, moves);
 
-        for (const Move &move : moves) {
-            const MoveEffects effects = position.effects(move);
+        for (const TacticalMove &move : moves) {
             Position child = position;
-            child.apply(move, effects);
-            if (effects.captured == 0 && kingOpenRays(child) == 0)
+            child.apply(move.move, move.effects);
+            if (move.effects.captured == 0 && kingOpenRays(child) == 0)
                 continue;
 
-            const int score = searchQuiescenceMove(position, child, effects.captured > 0, alpha, beta, ply, depth, epochStart);
+            const int score = searchQuiescenceMove(position, child, move.effects.captured > 0, alpha, beta, ply, depth, epochStart);
             best = std::max(best, score);
             alpha = std::max(alpha, best);
             if (alpha >= beta)
@@ -326,18 +325,18 @@ private:
      * @param position The position, White to move
      * @param moves Where to add the moves
      */
-    static void addQuietKingMoves(const Position &position, std::vector<Move> &moves) {
+    static void addQuietKingMoves(const Position &position, std::vector<TacticalMove> &moves) {
         if (!position.king)
             return;
         const int king = position.kingSquare();
         const Bitboard blockers = position.white | position.black | tables.camps | bit(THRONE);
+        const Bitboard captureSquares = position.captureSquares();
         for (int direction = 0; direction < 4; direction++) {
             const int length = freeLength(king, direction, blockers);
             for (int i = 0; i < length; i++) {
                 const int square = tables.ray[king][direction][i];
-                const Move move = makeMove(king, square);
-                if (position.effects(move).captured == 0)
-                    moves.push_back(move);
+                if (!(captureSquares & bit(square)))
+                    moves.push_back({makeMove(king, square), MoveEffects{}});
             }
         }
     }

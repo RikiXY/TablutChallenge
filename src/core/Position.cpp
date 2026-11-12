@@ -141,7 +141,7 @@ bool Position::hasLegalMove() const {
     return false;
 }
 
-void Position::calculateTacticalMoves(std::vector<Move> &moves) const {
+void Position::calculateTacticalMoves(std::vector<TacticalMove> &moves) const {
     moves.clear();
     if (outcome != Outcome::Ongoing)
         return;
@@ -153,6 +153,14 @@ void Position::calculateTacticalMoves(std::vector<Move> &moves) const {
     for (int direction = 0; direction < 4; direction++)
         nearOpponent |= shift(occupied & ~own, direction);
     nearOpponent &= ~occupied;
+
+    // Keeps a candidate move only if it captures or wins
+    const auto add = [&](int from, int to) {
+        const Move move = makeMove(from, to);
+        const MoveEffects moveEffects = effects(move);
+        if (moveEffects.captured > 0 || moveEffects.outcome != Outcome::Ongoing)
+            moves.push_back({move, moveEffects});
+    };
 
     // The king also wins on the edge cells next to an opponent
     const Bitboard edgesNearOpponent = sideToMove == Side::White ? nearOpponent & tables.edges : 0;
@@ -167,7 +175,7 @@ void Position::calculateTacticalMoves(std::vector<Move> &moves) const {
             const Bitboard path = bit(to) | (tables.rayMask[to][direction] & ~tables.rayMask[from][direction] & ~bit(from));
             // The piece must belong to the side to move and be able to cross every cell up to the target
             if ((own & bit(from)) && !(path & forbiddenFrom(from)))
-                moves.push_back(makeMove(from, to));
+                add(from, to);
         }
     }
 
@@ -180,15 +188,10 @@ void Position::calculateTacticalMoves(std::vector<Move> &moves) const {
             for (int i = 0; i < length; i++) {
                 const int to = tables.ray[from][direction][i];
                 if ((tables.edges & bit(to)) && !(nearOpponent & bit(to)))
-                    moves.push_back(makeMove(from, to));
+                    add(from, to);
             }
         }
     }
-
-    std::erase_if(moves, [&](const Move &move) {
-        const MoveEffects moveEffects = effects(move);
-        return moveEffects.captured == 0 && moveEffects.outcome == Outcome::Ongoing;
-    });
 }
 
 Bitboard Position::captureSquares() const {
