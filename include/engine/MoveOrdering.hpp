@@ -42,9 +42,9 @@ public:
      * @param ply The distance from the root
      * @param firstMove The move to search first
      * @param previous The move that led to the position
-     * @return The moves with their effects
+     * @param children Where to write the moves with their effects
      */
-    std::vector<Child> makeChildren(const Position &position, const std::vector<Move> &moves, int ply, Move firstMove, const Move &previous);
+    void makeChildren(const Position &position, const std::vector<Move> &moves, int ply, Move firstMove, const Move &previous, std::vector<Child> &children);
 
     /**
      * @brief Remembers a quiet move that caused a cutoff

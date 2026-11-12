@@ -35,14 +35,15 @@ void think(int argc, char *argv[]) {
         if (!parseMove(argv[i], move))
             throw std::invalid_argument("Not a move: " + std::string(argv[i]));
 
-        const std::vector<Move> legal = position.calculateLegalMoves();
+        std::vector<Move> legal;
+        position.calculateLegalMoves(legal);
         if (position.outcome != Outcome::Ongoing || std::find(legal.begin(), legal.end(), move) == legal.end())
             throw std::invalid_argument("Illegal move: " + std::string(argv[i]));
 
         const bool captured = position.apply(move) > 0;
         history.push(position, captured);
     }
-    if (position.outcome != Outcome::Ongoing || position.calculateLegalMoves().empty())
+    if (!position.hasLegalMove())
         throw std::invalid_argument("The game is already over");
 
     // Get the best move with the given time limit

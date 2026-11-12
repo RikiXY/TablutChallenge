@@ -57,11 +57,11 @@ struct Position {
     int kingSquare() const;
 
     /**
-     * @brief Generates the legal moves for every piece of the side to move, without modifying the position
+     * @brief Generates the legal moves for every piece of the side to move
      *
-     * @return The legal moves, empty if the game is over or the side to move is stuck
+     * @param moves Where to write the moves
      */
-    std::vector<Move> calculateLegalMoves() const;
+    void calculateLegalMoves(std::vector<Move> &moves) const;
 
     /**
      * @brief Checks whether the side to move has at least one legal move
@@ -73,9 +73,9 @@ struct Position {
     /**
      * @brief Generates only the legal moves that capture or win
      *
-     * @return The moves that capture at least a pawn or end the game
+     * @param moves Where to write the moves
      */
-    std::vector<Move> calculateTacticalMoves() const;
+    void calculateTacticalMoves(std::vector<Move> &moves) const;
 
     /**
      * @brief Plays a move: moves the piece, removes the captured pawns and updates the outcome, the side to move and the hash

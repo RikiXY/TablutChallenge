@@ -57,7 +57,8 @@ std::vector<Move> randomOpening(int plies, uint64_t seed) {
 
         // Applies the "plies" random legal moves from the start position
         for (int ply = 0; ply < plies; ply++) {
-            const std::vector<Move> legalMoves = position.calculateLegalMoves();
+            std::vector<Move> legalMoves;
+            position.calculateLegalMoves(legalMoves);
             if (legalMoves.empty() || position.outcome != Outcome::Ongoing)
                 break;
             moves.push_back(legalMoves[random() % legalMoves.size()]);
@@ -109,7 +110,8 @@ GameResult playGame(const std::string &white, const std::string &black, const st
     GameResult result;
 
     for (int ply = 0; ply < maxPlies; ply++) {
-        const std::vector<Move> legal = position.calculateLegalMoves();
+        std::vector<Move> legal;
+        position.calculateLegalMoves(legal);
 
         // If the side to move has no legal moves, it loses
         if (legal.empty()) {

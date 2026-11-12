@@ -8,7 +8,7 @@
 Agent::Agent(int timeoutSeconds, int searchThreads) : timeout(timeoutSeconds), threads(searchThreads) {}
 
 Move Agent::chooseMove(const Position &position, const GameHistory &history, std::chrono::steady_clock::time_point startingTime) {
-    if (position.calculateLegalMoves().empty())
+    if (!position.hasLegalMove())
         throw NoLegalMoves{};
 
     // The search budget is the timeout minus a reserve of 3% of it for safety, kept between 350 ms and 2 s

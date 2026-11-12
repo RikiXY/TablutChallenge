@@ -36,6 +36,10 @@ private:
     MoveOrdering ordering;
     std::vector<Move> previousMoves;
 
+    std::vector<std::vector<Move>> moveLists;
+    std::vector<std::vector<Child>> childLists;
+    std::vector<std::vector<Move>> tacticalLists;
+
 public:
     bool canStop = false;
     uint64_t nodes = 0;
@@ -50,6 +54,9 @@ public:
     void start(const Position &root, int maxDepth) {
         ordering.start(maxDepth);
         previousMoves.assign(static_cast<size_t>(maxDepth) + 1, Move{});
+        moveLists.resize(static_cast<size_t>(maxDepth + QUIESCENCE_DEPTH) + 1);
+        childLists.resize(static_cast<size_t>(maxDepth + QUIESCENCE_DEPTH) + 1);
+        tacticalLists.resize(static_cast<size_t>(maxDepth + QUIESCENCE_DEPTH) + 1);
         if (!useNetwork)
             return;
         accumulators.resize(static_cast<size_t>(maxDepth + QUIESCENCE_DEPTH) + 1);
@@ -109,13 +116,15 @@ public:
                 return score;
         }
 
-        std::vector<Move> moves = position.calculateLegalMoves(); // Generate all branches
+        std::vector<Move> &moves = moveLists[static_cast<size_t>(ply)];
+        position.calculateLegalMoves(moves); // Generate all branches
         if (moves.empty())
             return -(WIN - ply); // The opponent already won because this side can't move
                                  // ! -ply indica che l'algoritmo preferisce perdere il più tardi possibile
 
         const Move &previous = previousMoves[static_cast<size_t>(ply)];
-        std::vector<Child> children = ordering.makeChildren(position, moves, ply, firstMove, previous);
+        std::vector<Child> &children = childLists[static_cast<size_t>(ply)];
+        ordering.makeChildren(position, moves, ply, firstMove, previous, children);
 
         const size_t lmpMoves = static_cast<size_t>(LMP_FACTOR * depth * depth);
 
@@ -200,7 +209,8 @@ private:
      * @return The score from the side to move's point of view
      */
     int quiescence(const Position &position, int alpha, int beta, int ply, int depth, size_t epochStart) {
-        const std::vector<Move> moves = position.calculateTacticalMoves();
+        std::vector<Move> &moves = tacticalLists[static_cast<size_t>(ply)];
+        position.calculateTacticalMoves(moves);
         for (const Move &move : moves)
             if (position.effects(move).outcome != Outcome::Ongoing)
                 return WIN - (ply + 1);
@@ -216,11 +226,10 @@ private:
             return best;
         alpha = std::max(alpha, best);
 
-        std::vector<Move> candidates = moves;
         if (position.sideToMove == Side::White)
-            addQuietKingMoves(position, candidates);
+            addQuietKingMoves(position, moves);
 
-        for (const Move &move : candidates) {
+        for (const Move &move : moves) {
             const MoveEffects effects = position.effects(move);
             Position child = position;
             child.apply(move, effects);
@@ -256,7 +265,9 @@ private:
         const int kingCol = position.kingSquare() % 9;
 
         int best = -(WIN - (ply + 2)); // +2 because the king can escape in one move and then Black can capture it in one move
-        for (const Move &move : position.calculateLegalMoves()) {
+        std::vector<Move> &moves = moveLists[static_cast<size_t>(ply)];
+        position.calculateLegalMoves(moves);
+        for (const Move &move : moves) {
             int score;
             if (isRepetition(position.hashAfterQuietMove(move), epochStart) && position.effects(move).captured == 0)
                 score = 0;

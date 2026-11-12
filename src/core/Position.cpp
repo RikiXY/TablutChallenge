@@ -119,18 +119,16 @@ Position Position::start() {
     return position;
 }
 
-std::vector<Move> Position::calculateLegalMoves() const {
-    std::vector<Move> moves;
-    moves.reserve(128);
+void Position::calculateLegalMoves(std::vector<Move> &moves) const {
+    moves.clear();
     if (outcome != Outcome::Ongoing)
-        return moves;
+        return;
 
     const Bitboard occupied = white | black | king;
     for (Bitboard own = sideToMove == Side::White ? white | king : black; own; own &= own - 1) {
         const int from = lowestSquare(own);
         addMoves(moves, from, occupied | forbiddenFrom(from));
     }
-    return moves;
 }
 
 bool Position::hasLegalMove() const {
@@ -146,10 +144,10 @@ bool Position::hasLegalMove() const {
     return false;
 }
 
-std::vector<Move> Position::calculateTacticalMoves() const {
-    std::vector<Move> moves;
+void Position::calculateTacticalMoves(std::vector<Move> &moves) const {
+    moves.clear();
     if (outcome != Outcome::Ongoing)
-        return moves;
+        return;
     const Bitboard own = sideToMove == Side::White ? white | king : black;
     const Bitboard occupied = white | black | king;
 
@@ -161,7 +159,6 @@ std::vector<Move> Position::calculateTacticalMoves() const {
 
     // The king also wins on the edge cells next to an opponent
     const Bitboard edgesNearOpponent = sideToMove == Side::White ? nearOpponent & tables.edges : 0;
-    std::vector<Move> candidates;
     for (Bitboard targets = captureSquares() | edgesNearOpponent; targets; targets &= targets - 1) {
         const int to = lowestSquare(targets);
         for (int direction = 0; direction < 4; direction++) {
@@ -177,7 +174,7 @@ std::vector<Move> Position::calculateTacticalMoves() const {
             }
             // The piece must belong to the side to move and be able to cross every cell up to the target
             if (from != -1 && (own & bit(from)) && !(path & forbiddenFrom(from)))
-                candidates.push_back(makeMove(from, to));
+                moves.push_back(makeMove(from, to));
         }
     }
 
@@ -191,17 +188,15 @@ std::vector<Move> Position::calculateTacticalMoves() const {
                 if (blockers & bit(to))
                     break;
                 if ((tables.edges & bit(to)) && !(nearOpponent & bit(to)))
-                    candidates.push_back(makeMove(from, to));
+                    moves.push_back(makeMove(from, to));
             }
         }
     }
 
-    for (const Move &move : candidates) {
+    std::erase_if(moves, [&](const Move &move) {
         const MoveEffects moveEffects = effects(move);
-        if (moveEffects.captured > 0 || moveEffects.outcome != Outcome::Ongoing)
-            moves.push_back(move);
-    }
-    return moves;
+        return moveEffects.captured == 0 && moveEffects.outcome == Outcome::Ongoing;
+    });
 }
 
 Bitboard Position::captureSquares() const {
@@ -298,7 +293,8 @@ void Position::computeHash() {
 }
 
 uint64_t perft(const Position &position, int depth) {
-    const std::vector<Move> moves = position.calculateLegalMoves();
+    std::vector<Move> moves;
+    position.calculateLegalMoves(moves);
     if (depth == 1)
         return moves.size();
 

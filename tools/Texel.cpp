@@ -84,7 +84,8 @@ Data load(const std::string &path) {
         GameHistory history;
         std::string text;
         for (int ply = 0; words >> text; ply++) {
-            const std::vector<Move> legal = position.calculateLegalMoves();
+            std::vector<Move> legal;
+            position.calculateLegalMoves(legal);
             Move move{};
             if (position.outcome != Outcome::Ongoing || !parseMove(text, move) || std::find(legal.begin(), legal.end(), move) == legal.end())
                 throw std::runtime_error(where + "illegal move " + text + " at ply " + std::to_string(ply + 1));

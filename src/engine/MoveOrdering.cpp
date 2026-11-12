@@ -30,12 +30,11 @@ void MoveOrdering::start(int maxDepth) {
     killers.assign(static_cast<size_t>(maxDepth) + 1, {});
 }
 
-std::vector<Child> MoveOrdering::makeChildren(const Position &position, const std::vector<Move> &moves, int ply, Move firstMove, const Move &previous) {
+void MoveOrdering::makeChildren(const Position &position, const std::vector<Move> &moves, int ply, Move firstMove, const Move &previous, std::vector<Child> &children) {
     const auto &killer = killers[static_cast<size_t>(ply)];
     const Move &counterMove = counterMoves[fromTo(previous)];
     const Bitboard captureSquares = position.captureSquares();
-    std::vector<Child> children;
-    children.reserve(moves.size());
+    children.clear();
     for (const Move &move : moves) {
         const bool capturing = captureSquares & bit(move.to);
         const bool kingToEdge = (position.king & bit(move.from)) && (tables.edges & bit(move.to));
@@ -56,7 +55,6 @@ std::vector<Child> MoveOrdering::makeChildren(const Position &position, const st
             child.order = historyOf(position.sideToMove, move);
         children.push_back(child);
     }
-    return children;
 }
 
 void MoveOrdering::rememberCutoff(Side side, const Move &move, int depth, int ply, const Move &previous) {
