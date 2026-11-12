@@ -166,10 +166,9 @@ Features computeFeatures(const Position &position) {
 
     const Bitboard blockers = kingBlockers(position);
     for (int direction = 0; direction < 4; direction++) {
-        for (int i = 0; i < tables.rayLength[king][direction]; i++) {
+        const int length = freeLength(king, direction, blockers);
+        for (int i = 0; i < length; i++) {
             const int square = tables.ray[king][direction][i];
-            if (blockers & bit(square))
-                break;
             features[KingMobility]++;
             if (openRays(square, blockers) > 0)
                 features[KingTwoStep]++;

@@ -3,6 +3,7 @@
 #include "core/Board.hpp"
 #include <array>
 #include <cstdint>
+#include <cstdlib>
 
 // One bit per square, square = row * 9 + col
 __extension__ typedef unsigned __int128 Bitboard;
@@ -36,6 +37,41 @@ inline int popcount(Bitboard board) {
 inline int lowestSquare(Bitboard board) {
     const auto low = static_cast<uint64_t>(board);
     return low ? __builtin_ctzll(low) : 64 + __builtin_ctzll(static_cast<uint64_t>(board >> 64));
+}
+
+/**
+ * @brief Finds the highest square of a bitboard
+ *
+ * @param board The bitboard, not empty
+ * @return The highest square
+ */
+inline int highestSquare(Bitboard board) {
+    const auto high = static_cast<uint64_t>(board >> 64);
+    return high ? 127 - __builtin_clzll(high) : 63 - __builtin_clzll(static_cast<uint64_t>(board));
+}
+
+/**
+ * @brief Moves every square of a bitboard one step in a direction, dropping the ones that leave the board
+ *
+ * @param board The bitboard
+ * @param direction The index in directions  (0 left, 1 right, 2 up, 3 down)
+ * @return The shifted bitboard
+ */
+inline Bitboard shift(Bitboard board, int direction) {
+    constexpr Bitboard all = (Bitboard(1) << 81) - 1;
+    // 0x8040201008040201ull = a1..a8, 0x100 << 64 = a9
+    constexpr Bitboard firstColumn = Bitboard(0x8040201008040201ull) | Bitboard(0x100) << 64;
+    constexpr Bitboard lastColumn = firstColumn << 8;
+    switch (direction) {
+    case 0:
+        return (board & ~firstColumn) >> 1;
+    case 1:
+        return (board & ~lastColumn) << 1;
+    case 2:
+        return board >> 9;
+    default:
+        return (board << 9) & all;
+    }
 }
 
 constexpr int THRONE = 40; // e5, 9*4 + 4 = 40
@@ -104,6 +140,22 @@ constexpr BoardTables makeTables() {
 }
 
 inline constexpr BoardTables tables = makeTables();
+
+/**
+ * @brief Counts the free squares from a square in a direction, before the first blocker or the edge
+ *
+ * @param from The square
+ * @param direction The direction
+ * @param blockers The squares that stop the ray
+ * @return How many squares in that direction are free
+ */
+inline int freeLength(int from, int direction, Bitboard blockers) {
+    const Bitboard hit = tables.rayMask[from][direction] & blockers;
+    if (!hit)
+        return tables.rayLength[from][direction];
+    const int first = direction == 1 || direction == 3 ? lowestSquare(hit) : highestSquare(hit);
+    return std::abs(first - from) / (direction < 2 ? 1 : 9) - 1;
+}
 
 /**
  * @brief Finds the cells a piece can't stop on or pass through except the occupied ones

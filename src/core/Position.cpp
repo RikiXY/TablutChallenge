@@ -52,12 +52,9 @@ uint64_t key(Piece piece, int square) {
  */
 void addMoves(std::vector<Move> &moves, int from, Bitboard blockers) {
     for (int direction = 0; direction < 4; direction++) {
-        for (int i = 0; i < tables.rayLength[from][direction]; i++) {
-            const int to = tables.ray[from][direction][i];
-            if (blockers & bit(to))
-                break;
-            moves.push_back(makeMove(from, to));
-        }
+        const int length = freeLength(from, direction, blockers);
+        for (int i = 0; i < length; i++)
+            moves.push_back(makeMove(from, tables.ray[from][direction][i]));
     }
 }
 
@@ -153,8 +150,8 @@ void Position::calculateTacticalMoves(std::vector<Move> &moves) const {
 
     // Finds all the empty cells that are next to an opponent's piece (the only viable ones for a capture)
     Bitboard nearOpponent = 0;
-    for (Bitboard opponent = occupied & ~own; opponent; opponent &= opponent - 1)
-        nearOpponent |= tables.neighbours[lowestSquare(opponent)];
+    for (int direction = 0; direction < 4; direction++)
+        nearOpponent |= shift(occupied & ~own, direction);
     nearOpponent &= ~occupied;
 
     // The king also wins on the edge cells next to an opponent
@@ -162,18 +159,14 @@ void Position::calculateTacticalMoves(std::vector<Move> &moves) const {
     for (Bitboard targets = captureSquares() | edgesNearOpponent; targets; targets &= targets - 1) {
         const int to = lowestSquare(targets);
         for (int direction = 0; direction < 4; direction++) {
-            // Find the first piece in this direction, saving the cells crossed to reach the target
-            Bitboard path = bit(to);
-            int from = -1;
-            for (int i = 0; i < tables.rayLength[to][direction] && from == -1; i++) {
-                const int square = tables.ray[to][direction][i];
-                if (occupied & bit(square))
-                    from = square;
-                else
-                    path |= bit(square);
-            }
+            // Find the first piece in this direction and the cells crossed to reach the target
+            const int length = freeLength(to, direction, occupied);
+            if (length == tables.rayLength[to][direction])
+                continue;
+            const int from = tables.ray[to][direction][length];
+            const Bitboard path = bit(to) | (tables.rayMask[to][direction] & ~tables.rayMask[from][direction] & ~bit(from));
             // The piece must belong to the side to move and be able to cross every cell up to the target
-            if (from != -1 && (own & bit(from)) && !(path & forbiddenFrom(from)))
+            if ((own & bit(from)) && !(path & forbiddenFrom(from)))
                 moves.push_back(makeMove(from, to));
         }
     }
@@ -183,10 +176,9 @@ void Position::calculateTacticalMoves(std::vector<Move> &moves) const {
         const int from = kingSquare();
         const Bitboard blockers = occupied | forbiddenFrom(from);
         for (int direction = 0; direction < 4; direction++) {
-            for (int i = 0; i < tables.rayLength[from][direction]; i++) {
+            const int length = freeLength(from, direction, blockers);
+            for (int i = 0; i < length; i++) {
                 const int to = tables.ray[from][direction][i];
-                if (blockers & bit(to))
-                    break;
                 if ((tables.edges & bit(to)) && !(nearOpponent & bit(to)))
                     moves.push_back(makeMove(from, to));
             }
@@ -202,15 +194,13 @@ void Position::calculateTacticalMoves(std::vector<Move> &moves) const {
 Bitboard Position::captureSquares() const {
     const bool whiteToMove = sideToMove == Side::White;
     const Bitboard hostile = whiteToMove ? white | king | bit(THRONE) | (tables.camps & ~tables.campCenters) : black | bit(THRONE) | tables.camps;
-    Bitboard squares = whiteToMove || !king ? 0 : tables.neighbours[kingSquare()];
-    for (Bitboard targets = whiteToMove ? black : white; targets; targets &= targets - 1) {
-        const int target = lowestSquare(targets);
-        for (int direction = 0; direction < 4; direction++) {
-            const int beyond = tables.neighbour[target][direction ^ 1];
-            if (beyond != -1 && (hostile & bit(beyond)) && tables.neighbour[target][direction] != -1)
-                squares |= bit(tables.neighbour[target][direction]);
-        }
-    }
+    const Bitboard enemy = whiteToMove ? black : white;
+    Bitboard squares = 0;
+    for (int direction = 0; direction < 4; direction++)
+        squares |= shift(enemy & shift(hostile, direction), direction);
+    if (!whiteToMove)
+        for (int direction = 0; direction < 4; direction++)
+            squares |= shift(king, direction);
     return squares & ~(white | black | king);
 }
 
