@@ -81,7 +81,7 @@ Accumulator makeAccumulator(const Position &position) {
     accumulator.hidden = network->hiddenBiases;
     for (Bitboard pieces = position.white | position.black | position.king; pieces; pieces &= pieces - 1) {
         const int square = lowestSquare(pieces);
-        addInput(accumulator.hidden, inputOf(position.at(square / 9, square % 9), square));
+        addInput(accumulator.hidden, inputOf(position.at(square), square));
     }
     if (position.sideToMove == Side::White)
         addInput(accumulator.hidden, 243);
@@ -93,8 +93,8 @@ Accumulator updateAccumulator(const Accumulator &accumulator, const Position &be
     const Bitboard changed = (before.white ^ after.white) | (before.black ^ after.black) | (before.king ^ after.king);
     for (Bitboard squares = changed; squares; squares &= squares - 1) {
         const int square = lowestSquare(squares);
-        const Piece old = before.at(square / 9, square % 9);
-        const Piece now = after.at(square / 9, square % 9);
+        const Piece old = before.at(square);
+        const Piece now = after.at(square);
         if (old != Piece::Empty)
             addInput(updated.hidden, inputOf(old, square), -1);
         if (now != Piece::Empty)

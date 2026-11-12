@@ -36,14 +36,15 @@ Position parsePosition(const std::string &json) {
     for (int i = 0; i < 9; i++) {
         for (int j = 0; j < 9; j++) {
             const std::string_view piece = jsonBoard[i][j].GetString();
+            const int square = i * 9 + j;
             if (piece == "EMPTY" || piece == "THRONE") // THRONE is the server's name for an empty throne
-                position.put(i, j, Piece::Empty);
+                position.put(square, Piece::Empty);
             else if (piece == "WHITE")
-                position.put(i, j, Piece::White);
+                position.put(square, Piece::White);
             else if (piece == "BLACK")
-                position.put(i, j, Piece::Black);
+                position.put(square, Piece::Black);
             else if (piece == "KING")
-                position.put(i, j, Piece::King);
+                position.put(square, Piece::King);
             else
                 throw std::invalid_argument("Anomaly in JSON board detected");
         }
@@ -68,8 +69,8 @@ Position parsePosition(const std::string &json) {
 }
 
 std::string moveToJson(const Move &move, Side side) {
-    const std::string from = convertToCoord(move.fromRow, move.fromCol);
-    const std::string to = convertToCoord(move.toRow, move.toCol);
+    const std::string from = convertToCoord(move.from);
+    const std::string to = convertToCoord(move.to);
 
     rapidjson::StringBuffer buffer;
     rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
@@ -91,24 +92,27 @@ std::string nameToJson(const std::string &name) {
     return buffer.GetString();
 }
 
-std::string convertToCoord(int row, int col) {
-    return char('a' + col) + std::to_string(row + 1);
+std::string convertToCoord(int square) {
+    return char('a' + square % 9) + std::to_string(square / 9 + 1);
 }
 
-bool parseSquare(const std::string &text, int &row, int &col) {
+bool parseSquare(const std::string &text, int &square) {
     if (text.size() != 2)
         return false;
-    col = std::tolower(static_cast<unsigned char>(text[0])) - 'a';
-    row = text[1] - '1';
-    return isOnBoard(row, col);
+    const int col = std::tolower(static_cast<unsigned char>(text[0])) - 'a';
+    const int row = text[1] - '1';
+    square = row * 9 + col;
+    return row >= 0 && row < 9 && col >= 0 && col < 9;
 }
 
 std::string moveToText(const Move &move) {
-    return convertToCoord(move.fromRow, move.fromCol) + convertToCoord(move.toRow, move.toCol);
+    return convertToCoord(move.from) + convertToCoord(move.to);
 }
 
 bool parseMove(const std::string &text, Move &move) {
-    return text.size() == 4 &&
-           parseSquare(text.substr(0, 2), move.fromRow, move.fromCol) &&
-           parseSquare(text.substr(2), move.toRow, move.toCol);
+    int from, to;
+    if (text.size() != 4 || !parseSquare(text.substr(0, 2), from) || !parseSquare(text.substr(2), to))
+        return false;
+    move = makeMove(from, to);
+    return true;
 }

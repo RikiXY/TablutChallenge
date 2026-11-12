@@ -17,7 +17,7 @@ constexpr int MAX_HISTORY = 1 << 20;
  * @return The index, from 0 to 81*81-1
  */
 size_t fromTo(const Move &move) {
-    return static_cast<size_t>((move.fromRow * 9 + move.fromCol) * 81 + move.toRow * 9 + move.toCol);
+    return static_cast<size_t>(move.from * 81 + move.to);
 }
 
 } // namespace
@@ -37,8 +37,8 @@ std::vector<Child> MoveOrdering::makeChildren(const Position &position, const st
     std::vector<Child> children;
     children.reserve(moves.size());
     for (const Move &move : moves) {
-        const bool capturing = captureSquares & bit(move.toRow * 9 + move.toCol);
-        const bool kingToEdge = (position.king & bit(move.fromRow * 9 + move.fromCol)) && (tables.edges & bit(move.toRow * 9 + move.toCol));
+        const bool capturing = captureSquares & bit(move.to);
+        const bool kingToEdge = (position.king & bit(move.from)) && (tables.edges & bit(move.to));
         Child child{move, capturing || kingToEdge ? position.effects(move) : MoveEffects{}, 0};
         if (move == firstMove)
             child.order = FIRST_MOVE_ORDER;

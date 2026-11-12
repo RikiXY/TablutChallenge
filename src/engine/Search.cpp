@@ -260,7 +260,7 @@ private:
             int score;
             if (isRepetition(position.hashAfterQuietMove(move), epochStart) && position.effects(move).captured == 0)
                 score = 0;
-            else if (rays == 1 && depth > 0 && (move.toRow == kingRow || move.toCol == kingCol)) {
+            else if (rays == 1 && depth > 0 && (move.to / 9 == kingRow || move.to % 9 == kingCol)) {
                 const MoveEffects effects = position.effects(move);
                 Position child = position;
                 child.apply(move, effects);
@@ -325,7 +325,7 @@ private:
                 const int square = tables.ray[king][direction][i];
                 if (blockers & bit(square))
                     break;
-                const Move move{king / 9, king % 9, square / 9, square % 9};
+                const Move move = makeMove(king, square);
                 if (position.effects(move).captured == 0)
                     moves.push_back(move);
             }
@@ -379,7 +379,7 @@ private:
      * @return true if the king moves
      */
     static bool isKingMove(const Position &position, const Child &child) {
-        return position.king & bit(child.move.fromRow * 9 + child.move.fromCol);
+        return position.king & bit(child.move.from);
     }
 
     /**

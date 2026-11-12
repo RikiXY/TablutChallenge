@@ -66,10 +66,10 @@ constexpr BoardTables makeTables() {
         const int col = square % 9;
 
         // Camps
-        tables.campOf[square] = static_cast<int8_t>(campOf(row, col));
-        if (isCamp(row, col)) {
+        tables.campOf[square] = static_cast<int8_t>(campOf(square));
+        if (isCamp(square)) {
             tables.camps |= bit(square);
-            tables.campMasks[campOf(row, col)] |= bit(square);
+            tables.campMasks[campOf(square)] |= bit(square);
         }
         if ((row == 4 && (col == 0 || col == 8)) || (col == 4 && (row == 0 || row == 8)))
             tables.campCenters |= bit(square);
@@ -85,12 +85,12 @@ constexpr BoardTables makeTables() {
             tables.neighbour[square][direction] = -1;
             int r = row + dRow;
             int c = col + dCol;
-            if (isOnBoard(r, c)) {
+            if (r >= 0 && r < 9 && c >= 0 && c < 9) {
                 tables.neighbour[square][direction] = static_cast<int8_t>(r * 9 + c);
                 tables.neighbours[square] |= bit(r * 9 + c);
             }
             int length = 0;
-            while (isOnBoard(r, c)) {
+            while (r >= 0 && r < 9 && c >= 0 && c < 9) {
                 tables.ray[square][direction][length] = static_cast<int8_t>(r * 9 + c);
                 tables.rayMask[square][direction] |= bit(r * 9 + c);
                 r += dRow;

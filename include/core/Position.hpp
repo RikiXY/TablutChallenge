@@ -34,22 +34,20 @@ struct Position {
     static Position start(); // Static method: callable without an instance of the struct
 
     /**
-     * @brief Reads the piece on a cell
+     * @brief Reads the piece on a square
      *
-     * @param row The row of the cell
-     * @param col The column of the cell
+     * @param square The square
      * @return What stands on it
      */
-    Piece at(int row, int col) const;
+    Piece at(int square) const;
 
     /**
-     * @brief Replaces a piece on a cell
+     * @brief Replaces a piece on a square
      *
-     * @param row The row of the cell
-     * @param col The column of the cell
+     * @param square The square
      * @param piece The piece to replace with
      */
-    void put(int row, int col, Piece piece);
+    void put(int square, Piece piece);
 
     /**
      * @brief Finds the square of the king

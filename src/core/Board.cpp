@@ -2,14 +2,6 @@
 #include "core/Position.hpp"
 #include <iostream>
 
-bool isEdge(int row, int col) {
-    return row == 0 || row == 8 || col == 0 || col == 8;
-}
-
-bool isCampCenter(int row, int col) {
-    return (row == 0 && col == 4) || (row == 8 && col == 4) || (row == 4 && col == 0) || (row == 4 && col == 8);
-}
-
 void printBoard(const Position &position) {
     std::cout << "\n     a b c d e f g h i\n";
     std::cout << "   +-------------------+\n";
@@ -17,12 +9,13 @@ void printBoard(const Position &position) {
     for (int i = 0; i < 9; i++) {
         std::cout << " " << i + 1 << " | ";
         for (int j = 0; j < 9; j++) {
+            const int square = i * 9 + j;
             const char *symbol = "?";
-            switch (position.at(i, j)) {
+            switch (position.at(square)) {
             case Piece::Empty:
-                if (i == 4 && j == 4)
+                if (square == THRONE)
                     symbol = "T";
-                else if (isCamp(i, j))
+                else if (isCamp(square))
                     symbol = "Δ";
                 else
                     symbol = ".";

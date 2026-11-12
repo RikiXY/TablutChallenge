@@ -29,23 +29,21 @@ std::string moveToJson(const Move &move, Side side);
 std::string nameToJson(const std::string &name);
 
 /**
- * @brief Converts a cell to its name (2,3 -> d3)
+ * @brief Converts a square to its name (21 -> d3)
  *
- * @param row The row of the cell
- * @param col The column of the cell
+ * @param square The square
  * @return The name
  */
-std::string convertToCoord(int row, int col);
+std::string convertToCoord(int square);
 
 /**
- * @brief Reads a cell name
+ * @brief Reads a square name
  *
  * @param text The name
- * @param row Where to write the row
- * @param col Where to write the column
- * @return true if text is a cell of the board
+ * @param square Where to write the square
+ * @return true if text is a square of the board
  */
-bool parseSquare(const std::string &text, int &row, int &col);
+bool parseSquare(const std::string &text, int &square);
 
 /**
  * @brief Writes a move as text (eg. d6d7)

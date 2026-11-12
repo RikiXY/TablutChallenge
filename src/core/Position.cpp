@@ -44,17 +44,6 @@ uint64_t key(Piece piece, int square) {
 }
 
 /**
- * @brief Makes a move from two squares
- *
- * @param from The square of the piece
- * @param to The square it moves to
- * @return The move
- */
-Move makeMove(int from, int to) {
-    return {from / 9, from % 9, to / 9, to % 9};
-}
-
-/**
  * @brief Generates all legal moves for a given piece
  *
  * @param moves Where to add the moves
@@ -91,28 +80,28 @@ bool isKingCaptured(Bitboard black, int king, int beyond) {
 
 } // namespace
 
-Piece Position::at(int row, int col) const {
-    const Bitboard square = bit(row * 9 + col);
-    if (white & square)
+Piece Position::at(int square) const {
+    const Bitboard mask = bit(square);
+    if (white & mask)
         return Piece::White;
-    if (black & square)
+    if (black & mask)
         return Piece::Black;
-    if (king & square)
+    if (king & mask)
         return Piece::King;
     return Piece::Empty;
 }
 
-void Position::put(int row, int col, Piece piece) {
-    const Bitboard square = bit(row * 9 + col);
-    white &= ~square;
-    black &= ~square;
-    king &= ~square;
+void Position::put(int square, Piece piece) {
+    const Bitboard mask = bit(square);
+    white &= ~mask;
+    black &= ~mask;
+    king &= ~mask;
     if (piece == Piece::White)
-        white |= square;
+        white |= mask;
     else if (piece == Piece::Black)
-        black |= square;
+        black |= mask;
     else if (piece == Piece::King)
-        king |= square;
+        king |= mask;
 }
 
 int Position::kingSquare() const {
@@ -232,15 +221,13 @@ Bitboard Position::captureSquares() const {
 
 MoveEffects Position::effects(const Move &move) const {
     // Simulate the server's capture rules locally on the pieces after the move
-    const int from = move.fromRow * 9 + move.fromCol;
-    const int to = move.toRow * 9 + move.toCol;
-    const Bitboard moved = bit(from) | bit(to);
+    const Bitboard moved = bit(move.from) | bit(move.to);
     Bitboard whiteAfter = white;
     Bitboard blackAfter = black;
     Bitboard kingAfter = king;
-    if (king & bit(from))
+    if (king & bit(move.from))
         kingAfter ^= moved;
-    else if (white & bit(from))
+    else if (white & bit(move.from))
         whiteAfter ^= moved;
     else
         blackAfter ^= moved;
@@ -250,7 +237,7 @@ MoveEffects Position::effects(const Move &move) const {
 
     MoveEffects result;
     for (int direction = 0; direction < 4; direction++) {
-        const int target = tables.neighbour[to][direction]; // The neighbour that may be captured
+        const int target = tables.neighbour[move.to][direction]; // The neighbour that may be captured
         if (target == -1)
             continue;
         const int beyond = tables.neighbour[target][direction]; // The cell after the neighbour
@@ -264,7 +251,7 @@ MoveEffects Position::effects(const Move &move) const {
         }
     }
 
-    if ((kingAfter & bit(to)) && (tables.edges & bit(to)))
+    if ((kingAfter & bit(move.to)) && (tables.edges & bit(move.to)))
         result.outcome = Outcome::WhiteWins;
     return result;
 }
@@ -274,19 +261,17 @@ int Position::apply(const Move &move) {
 }
 
 uint64_t Position::hashAfterQuietMove(const Move &move) const {
-    const Piece piece = at(move.fromRow, move.fromCol);
-    return hash ^ key(piece, move.fromRow * 9 + move.fromCol) ^ key(piece, move.toRow * 9 + move.toCol) ^ zobrist.whiteToMove;
+    const Piece piece = at(move.from);
+    return hash ^ key(piece, move.from) ^ key(piece, move.to) ^ zobrist.whiteToMove;
 }
 
 int Position::apply(const Move &move, const MoveEffects &effects) {
     // Apply the move to the board
-    const int from = move.fromRow * 9 + move.fromCol;
-    const int to = move.toRow * 9 + move.toCol;
-    const Piece pieceToMove = at(move.fromRow, move.fromCol);
+    const Piece pieceToMove = at(move.from);
     Bitboard &pieces = pieceToMove == Piece::King ? king : pieceToMove == Piece::White ? white
                                                                                        : black;
-    pieces ^= bit(from) | bit(to);
-    hash ^= key(pieceToMove, from) ^ key(pieceToMove, to);
+    pieces ^= bit(move.from) | bit(move.to);
+    hash ^= key(pieceToMove, move.from) ^ key(pieceToMove, move.to);
 
     // Remove the captured pawns
     Bitboard &opponent = sideToMove == Side::White ? black : white;
@@ -294,7 +279,7 @@ int Position::apply(const Move &move, const MoveEffects &effects) {
     for (int direction = 0; direction < 4; direction++) {
         if (!(effects.capturedDirections & (1 << direction)))
             continue;
-        const int square = tables.neighbour[to][direction];
+        const int square = tables.neighbour[move.to][direction];
         opponent &= ~bit(square);
         hash ^= key(captured, square);
     }
@@ -309,7 +294,7 @@ int Position::apply(const Move &move, const MoveEffects &effects) {
 void Position::computeHash() {
     hash = sideToMove == Side::White ? zobrist.whiteToMove : 0;
     for (int square = 0; square < 81; square++)
-        hash ^= key(at(square / 9, square % 9), square);
+        hash ^= key(at(square), square);
 }
 
 uint64_t perft(const Position &position, int depth) {

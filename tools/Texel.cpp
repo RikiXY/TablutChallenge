@@ -181,7 +181,7 @@ Vector defaultWeightsVector() {
 std::string squares(const Position &position, Piece piece) {
     std::string text;
     for (int square = 0; square < 81; square++)
-        if (position.at(square / 9, square % 9) == piece)
+        if (position.at(square) == piece)
             text += (text.empty() ? "" : ",") + std::to_string(square);
     return text.empty() ? "-" : text;
 }
@@ -234,7 +234,7 @@ void relabel(const std::string &path) {
             std::istringstream list(squares);
             std::string square;
             while (squares != "-" && std::getline(list, square, ','))
-                position.put(std::stoi(square) / 9, std::stoi(square) % 9, piece);
+                position.put(std::stoi(square), piece);
         }
         std::printf("%s %s %d %s %s %s %s%s\n", test.c_str(), result.c_str(), linearScore(position), side.c_str(), king.c_str(),
                     white.c_str(), black.c_str(), rest.c_str());

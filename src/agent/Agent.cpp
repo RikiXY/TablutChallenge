@@ -18,8 +18,8 @@ Move Agent::chooseMove(const Position &position, const GameHistory &history, std
     const SearchResult result = search(position, history, startingTime + budget, 64, threads);
 
     const Move &move = result.bestMove;
-    std::cout << "Chosen move: \n\tfrom " << convertToCoord(move.fromRow, move.fromCol)
-              << " to " << convertToCoord(move.toRow, move.toCol) << std::endl;
+    std::cout << "Chosen move: \n\tfrom " << convertToCoord(move.from)
+              << " to " << convertToCoord(move.to) << std::endl;
     std::cout << "\tdepth " << result.depth << ", score " << result.score << ", " << result.nodes << " nodes" << std::endl;
     return move;
 }

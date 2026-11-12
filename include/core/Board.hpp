@@ -10,83 +10,124 @@ enum class Piece : uint8_t { Empty,
                              King };
 
 struct Move {
-    int fromRow, fromCol, toRow, toCol;
+    uint8_t from, to;
     bool operator==(const Move &) const = default; // Automatically compare all members for equality
 };
 
+/**
+ * @brief Makes a move from its squares
+ *
+ * @param from The square the piece starts from
+ * @param to The square it moves to
+ * @return The move
+ */
+constexpr Move makeMove(int from, int to) {
+    return {static_cast<uint8_t>(from), static_cast<uint8_t>(to)};
+}
+
 constexpr int directions[4][2] = {{0, -1}, {0, 1}, {-1, 0}, {1, 0}}; // left, right, up, down
 
-/**
- * @brief Checks whether a cell is inside the board
- *
- * @param row The row of the cell
- * @param col The column of the cell
- * @return true if both arguments are valid
- */
-constexpr bool isOnBoard(int row, int col) {
-    return row >= 0 && row < 9 && col >= 0 && col < 9;
-}
-
-/**
- * @brief Checks whether a cell is the throne (e5)
- *
- * @param row The row of the cell
- * @param col The column of the cell
- * @return true if it's the throne
- */
-constexpr bool isThrone(int row, int col) {
-    return row == 4 && col == 4;
-}
-
-/**
- * @brief Checks whether a cell is on the edge of the board, where the king escapes
- *
- * @param row The row of the cell
- * @param col The column of the cell
- * @return true if it's on the first or last row or column
- */
-bool isEdge(int row, int col);
-
-// The camp of each cell: 0 top, 1 bottom, 2 left, 3 right, -1 not a camp
-constexpr int8_t CAMPS[9][9] = {
-    {-1, -1, -1, 0, 0, 0, -1, -1, -1},
-    {-1, -1, -1, -1, 0, -1, -1, -1, -1},
-    {-1, -1, -1, -1, -1, -1, -1, -1, -1},
-    {2, -1, -1, -1, -1, -1, -1, -1, 3},
-    {2, 2, -1, -1, -1, -1, -1, 3, 3},
-    {2, -1, -1, -1, -1, -1, -1, -1, 3},
-    {-1, -1, -1, -1, -1, -1, -1, -1, -1},
-    {-1, -1, -1, -1, 1, -1, -1, -1, -1},
-    {-1, -1, -1, 1, 1, 1, -1, -1, -1},
+// The camp of each square: 0 top, 1 bottom, 2 left, 3 right, -1 not a camp
+constexpr int8_t CAMPS[81] = {
+    -1,
+    -1,
+    -1,
+    0,
+    0,
+    0,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    0,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    2,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    3,
+    2,
+    2,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    3,
+    3,
+    2,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    3,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    1,
+    1,
+    1,
+    -1,
+    -1,
+    -1,
 };
 
 /**
- * @brief Tells which camp a cell belongs to
+ * @brief Tells which camp a square belongs to
  *
- * @param row The row of the cell
- * @param col The column of the cell
- * @return 0 top, 1 bottom, 2 left, 3 right, -1 if the cell isn't a camp
+ * @param square The square
+ * @return 0 top, 1 bottom, 2 left, 3 right, -1 if the square isn't a camp
  */
-constexpr int campOf(int row, int col) {
-    return CAMPS[row][col];
+constexpr int campOf(int square) {
+    return CAMPS[square];
 }
 
 /**
- * @brief Checks whether a cell is one of the 16 camp cells
+ * @brief Checks whether a square is one of the 16 camp squares
  *
- * @param row The row of the cell
- * @param col The column of the cell
- * @return true if it's a camp cell
+ * @param square The square
+ * @return true if it's a camp square
  */
-constexpr bool isCamp(int row, int col) {
-    return campOf(row, col) != -1;
+constexpr bool isCamp(int square) {
+    return campOf(square) != -1;
 }
-
-/**
- * @brief Checks whether a cell is the middle cell of a camp (e1, e9, a5, i5)
- *
- * @param row The row of the cell
- * @param col The column of the cell
- * @return true if it's a camp center
- */
-bool isCampCenter(int row, int col);

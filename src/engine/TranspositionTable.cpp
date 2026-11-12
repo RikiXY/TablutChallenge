@@ -61,7 +61,7 @@ TranspositionTable::Entry unpack(uint64_t key, uint64_t data) {
 } // namespace
 
 Move TranspositionTable::Entry::move() const {
-    return {from / 9, from % 9, to / 9, to % 9};
+    return makeMove(from, to);
 }
 
 TranspositionTable::TranspositionTable(size_t megabytes) {
@@ -95,7 +95,7 @@ void TranspositionTable::store(uint64_t key, const Move &move, int score, int de
         return;
 
     const Entry entry{key, static_cast<int16_t>(score), static_cast<uint8_t>(depth), bound, generation,
-                      static_cast<uint8_t>(move.fromRow * 9 + move.fromCol), static_cast<uint8_t>(move.toRow * 9 + move.toCol)};
+                      move.from, move.to};
     const uint64_t data = pack(entry);
     save(slot.data, data);
     save(slot.keyXorData, key ^ data);
