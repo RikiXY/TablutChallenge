@@ -79,6 +79,10 @@ set_target_properties(TablutChallenge PROPERTIES OUTPUT_NAME player)
 add_executable(arena tools/Arena.cpp)
 target_link_libraries(arena PRIVATE tablut)
 
+# Self-play training games
+add_executable(selfplay tools/SelfPlay.cpp)
+target_link_libraries(selfplay PRIVATE tablut)
+
 # Evaluation weight fitting
 add_executable(texel tools/Texel.cpp)
 target_link_libraries(texel PRIVATE tablut)
