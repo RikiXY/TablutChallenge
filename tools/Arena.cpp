@@ -301,6 +301,7 @@ int main(int argc, char *argv[]) {
                         games << ' ' << move;
                     games << '\n';
                 }
+                games.flush();
 
                 summary = summarize(stats, options);
                 if (summary.pairs % 10 == 0)
