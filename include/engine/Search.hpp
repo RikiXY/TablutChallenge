@@ -27,6 +27,18 @@ struct SearchResult {
 SearchResult search(const Position &position, const GameHistory &history, std::chrono::steady_clock::time_point deadline, int maxDepth = 64, int threads = 1, bool exact = false);
 
 /**
+ * @brief Makes the running search return as soon as possible
+ */
+void stopSearch();
+
+/**
+ * @brief The best move of the last depth the current (or last) search finished
+ *
+ * @return The move, or Move{} if no depth has finished yet
+ */
+Move completedMove();
+
+/**
  * @brief Counts the CPUs this process is allowed to run on
  *
  * @return The number of CPUs

@@ -26,6 +26,14 @@ struct Config { // Default values
 int threadsFromEnvironment(int fallback);
 
 /**
+ * @brief Reads the transposition table size from the TABLUT_TT_MB environment variable. Throws if TABLUT_TT_MB isn't a number between 1 and 65536
+ *
+ * @param fallback The value to use if TABLUT_TT_MB isn't set
+ * @return The size in MiB
+ */
+int tableSizeFromEnvironment(int fallback);
+
+/**
  * @brief Reads the command line options. Throws with the usage if they are wrong
  *
  * @param argc The number of arguments

@@ -1,6 +1,7 @@
 #include "config/Config.hpp"
 #include "engine/Search.hpp"
 #include <algorithm>
+#include <cctype>
 #include <cstdlib>
 #include <stdexcept>
 #include <string>
@@ -16,6 +17,16 @@ int threadsFromEnvironment(int fallback) {
     return threads;
 }
 
+int tableSizeFromEnvironment(int fallback) {
+    const char *value = std::getenv("TABLUT_TT_MB");
+    if (value == nullptr)
+        return fallback;
+    const int megabytes = std::stoi(value);
+    if (megabytes < 1 || megabytes > 65536)
+        throw std::invalid_argument("TABLUT_TT_MB must be between 1 and 65536");
+    return megabytes;
+}
+
 Config parseArguments(int argc, char *argv[]) {
     if (argc < 4)
         throw std::invalid_argument("Usage: player <WHITE|BLACK> <timeout_s> <server_ip> [-n name] [-m auto|manual]");
@@ -23,13 +34,14 @@ Config parseArguments(int argc, char *argv[]) {
     Config config;
     config.threads = threadsFromEnvironment(std::min(usableCpus(), 4));
 
-    const std::string_view role(argv[1]);
+    std::string role(argv[1]);
+    std::transform(role.begin(), role.end(), role.begin(), [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
     if (role == "WHITE")
         config.side = Side::White;
     else if (role == "BLACK")
         config.side = Side::Black;
     else
-        throw std::invalid_argument("Not a valid role: " + std::string(role));
+        throw std::invalid_argument("Not a valid role: " + std::string(argv[1]));
 
     config.port = config.side == Side::White ? 5800 : 5801; // Ports defined in TablutCompetition/Tablut/src/.../util/Configuration.java
     config.timeout = std::stoi(argv[2]);

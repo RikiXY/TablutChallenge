@@ -3,6 +3,7 @@
 #include "agent/Human.hpp"
 #include "core/Translator.hpp"
 #include <chrono>
+#include <exception>
 #include <iostream>
 #include <string>
 
@@ -74,7 +75,14 @@ void Game::start(ServerConnector &connection, const Config &config) {
         std::cout << "Waiting for server response..." << std::endl;
         const std::string message = connection.receive();
         const auto receivedAt = std::chrono::steady_clock::now();
-        record(parsePosition(message));
+        Position received;
+        try {
+            received = parsePosition(message);
+        } catch (const std::exception &error) {
+            std::cout << "Ignored a message that isn't a valid state (" << error.what() << "): " << message.substr(0, 200) << std::endl;
+            continue;
+        }
+        record(received);
         std::cout << "State received" << std::endl;
         printBoard(position);
         std::cout << std::endl

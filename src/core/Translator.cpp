@@ -1,4 +1,5 @@
 #include "core/Translator.hpp"
+#include <algorithm>
 #include <cctype>
 #include <rapidjson/document.h>
 #include <rapidjson/stringbuffer.h>
@@ -29,14 +30,19 @@ Position parsePosition(const std::string &json) {
     if (doc.HasParseError())
         throw std::runtime_error("Invalid JSON");
 
-    // ! JSON structure is not validated. Assumed to be valid
+    // The structure is checked before reading it
+    if (!doc.IsObject() || !doc.HasMember("board") || !doc["board"].IsArray() || doc["board"].Size() != 9 || !doc.HasMember("turn") || !doc["turn"].IsString())
+        throw std::invalid_argument("Anomaly in JSON structure detected");
     const auto &jsonBoard = doc["board"];
+    for (const auto &row : jsonBoard.GetArray())
+        if (!row.IsArray() || row.Size() != 9 || !std::all_of(row.Begin(), row.End(), [](const auto &cell) { return cell.IsString(); }))
+            throw std::invalid_argument("Anomaly in JSON board detected");
     Position position;
 
-    for (int i = 0; i < 9; i++) {
-        for (int j = 0; j < 9; j++) {
+    for (rapidjson::SizeType i = 0; i < 9; i++) {
+        for (rapidjson::SizeType j = 0; j < 9; j++) {
             const std::string_view piece = jsonBoard[i][j].GetString();
-            const int square = i * 9 + j;
+            const int square = static_cast<int>(i * 9 + j);
             if (piece == "EMPTY" || piece == "THRONE") // THRONE is the server's name for an empty throne
                 position.put(square, Piece::Empty);
             else if (piece == "WHITE")
@@ -63,6 +69,9 @@ Position parsePosition(const std::string &json) {
         position.outcome = Outcome::Draw;
     else
         throw std::invalid_argument("Anomaly in JSON turn detected: " + std::string(turn));
+
+    if (popcount(position.king) > 1 || (position.outcome == Outcome::Ongoing && popcount(position.king) != 1))
+        throw std::invalid_argument("Anomaly in JSON board detected: no king or more than one");
 
     position.computeHash();
     return position;

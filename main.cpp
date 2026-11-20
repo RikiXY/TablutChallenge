@@ -47,6 +47,7 @@ void think(int argc, char *argv[]) {
         throw std::invalid_argument("The game is already over");
 
     // Get the best move with the given time limit
+    resizeTranspositionTable(static_cast<size_t>(tableSizeFromEnvironment(64)));
     const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(std::stoi(argv[2]));
     const SearchResult result = search(position, history, deadline, 64, threadsFromEnvironment(1)); // 1 by default, so arena games running in parallel don't fight for the CPUs
     std::cout << "bestmove " << moveToText(result.bestMove) << " depth " << result.depth
@@ -67,7 +68,7 @@ int main(int argc, char *argv[]) {
         }
 
         const Config config = parseArguments(argc, argv);
-        resizeTranspositionTable(512);
+        resizeTranspositionTable(static_cast<size_t>(tableSizeFromEnvironment(512)));
         std::cout << "Search threads: " << config.threads << std::endl;
 
         ServerConnector connection(config.ip, config.port);

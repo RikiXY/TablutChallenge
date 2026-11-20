@@ -17,6 +17,8 @@ using Clock = std::chrono::steady_clock;
 struct TimeUp {};
 
 TranspositionTable table(64);
+std::atomic<bool> stop = false;
+std::atomic<uint16_t> lastCompletedMove = 0;
 
 constexpr double LMR_DIVISOR = 150;
 constexpr int LMP_FACTOR = 3;
@@ -467,9 +469,10 @@ int aspirationSearch(Searcher &searcher, const Position &position, int depth, co
  * @param firstDepth The depth to start from
  * @param maxDepth The maximum depth
  * @param deadline When to stop
+ * @param publish If true, saves the best move of each finished depth for completedMove()
  * @return The best move, with the score and the depth of the last finished depth
  */
-SearchResult iterativeDeepening(Searcher &searcher, const Position &position, int firstDepth, int maxDepth, Clock::time_point deadline) {
+SearchResult iterativeDeepening(Searcher &searcher, const Position &position, int firstDepth, int maxDepth, Clock::time_point deadline, bool publish = false) {
     SearchResult result;
     searcher.start(position, maxDepth);
     for (int depth = firstDepth; depth <= maxDepth; depth++) {
@@ -485,6 +488,8 @@ SearchResult iterativeDeepening(Searcher &searcher, const Position &position, in
         result.bestMove = searcher.rootBest;
         result.score = score;
         result.depth = depth;
+        if (publish)
+            lastCompletedMove = static_cast<uint16_t>(result.bestMove.from << 8 | result.bestMove.to);
 
         if (std::abs(score) >= WIN_BOUND || Clock::now() >= deadline)
             break;
@@ -496,7 +501,8 @@ SearchResult iterativeDeepening(Searcher &searcher, const Position &position, in
 
 SearchResult search(const Position &position, const GameHistory &history, Clock::time_point deadline, int maxDepth, int threads, bool exact) {
     table.newSearch();
-    std::atomic<bool> stop = false;
+    lastCompletedMove = 0;
+    stop = false;
 
     std::vector<Searcher> helpers;
     for (int i = 1; i < threads; i++)
@@ -506,7 +512,7 @@ SearchResult search(const Position &position, const GameHistory &history, Clock:
         workers.emplace_back([&, i] { iterativeDeepening(helpers[i], position, 1 + static_cast<int>(i % 2), maxDepth, deadline); });
 
     Searcher searcher(deadline, stop, history, exact);
-    SearchResult result = iterativeDeepening(searcher, position, 1, maxDepth, deadline);
+    SearchResult result = iterativeDeepening(searcher, position, 1, maxDepth, deadline, true);
     result.nodes = searcher.nodes;
 
     stop = true;
@@ -515,6 +521,15 @@ SearchResult search(const Position &position, const GameHistory &history, Clock:
     for (const Searcher &helper : helpers)
         result.nodes += helper.nodes;
     return result;
+}
+
+void stopSearch() {
+    stop = true;
+}
+
+Move completedMove() {
+    const uint16_t move = lastCompletedMove;
+    return {static_cast<uint8_t>(move >> 8), static_cast<uint8_t>(move & 0xFF)};
 }
 
 int usableCpus() {

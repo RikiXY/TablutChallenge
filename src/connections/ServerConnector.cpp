@@ -1,9 +1,14 @@
 #include "connections/ServerConnector.hpp"
-#include <arpa/inet.h>   // IP address conversion and network byte-order utilities
-#include <sys/socket.h>
+#include <arpa/inet.h> // IP address conversion and network byte-order utilities
 #include <cerrno>
+#include <chrono>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <stdexcept>
+#include <sys/socket.h>
 #include <system_error>
+#include <thread>
 #include <unistd.h>
 
 ServerConnector::ServerConnector(const std::string &address, uint16_t port) {
@@ -11,21 +16,38 @@ ServerConnector::ServerConnector(const std::string &address, uint16_t port) {
     serverAddress.sin_family = AF_INET;
     serverAddress.sin_port = htons(port); // Convert the port to network byte order (big-endian)
 
-    if (inet_pton(AF_INET, address.c_str(), &serverAddress.sin_addr) != 1) // Convert the IPv4 address from text to binary (network byte order)
-        throw std::invalid_argument("Not a valid IPv4 address: " + address);
+    const std::string host = address == "localhost" ? "127.0.0.1" : address;
+    if (inet_pton(AF_INET, host.c_str(), &serverAddress.sin_addr) != 1) { // Convert the IPv4 address from text to binary (network byte order)
+        addrinfo hints{};
+        hints.ai_family = AF_INET;
+        hints.ai_socktype = SOCK_STREAM;
+        addrinfo *found = nullptr;
+        if (getaddrinfo(host.c_str(), nullptr, &hints, &found) != 0 || found == nullptr)
+            throw std::invalid_argument("Not a valid address or host name: " + address);
+        serverAddress.sin_addr = reinterpret_cast<sockaddr_in *>(found->ai_addr)->sin_addr;
+        freeaddrinfo(found);
+    }
 
-    clientSocket = socket(AF_INET, SOCK_STREAM, 0); // AF_INET: IPv4 address family
-                                                    // 0: Automatically select the default protocol (TCP)
-                                                    // SOCK_STREAM: Connection-oriented byte stream
+    constexpr int attempts = 50;
+    for (int attempt = 1;; attempt++) {
+        clientSocket = socket(AF_INET, SOCK_STREAM, 0); // AF_INET: IPv4 address family
+                                                        // 0: Automatically select the default protocol (TCP)
+                                                        // SOCK_STREAM: Connection-oriented byte stream
+        if (clientSocket == -1)
+            throw std::system_error(errno, std::system_category(), "Socket creation failed");
 
-    if (clientSocket == -1)
-        throw std::system_error(errno, std::system_category(), "Socket creation failed");
-
-    if (connect(clientSocket, reinterpret_cast<sockaddr *>(&serverAddress), sizeof(serverAddress)) == -1) {
+        if (connect(clientSocket, reinterpret_cast<sockaddr *>(&serverAddress), sizeof(serverAddress)) == 0)
+            break;
         const int error = errno;
         close(clientSocket);
-        throw std::system_error(error, std::system_category(), "Connection to " + address + " failed");
+        clientSocket = -1;
+        if (attempt == attempts)
+            throw std::system_error(error, std::system_category(), "Connection to " + address + " failed");
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
     }
+
+    const int noDelay = 1;
+    setsockopt(clientSocket, IPPROTO_TCP, TCP_NODELAY, &noDelay, sizeof(noDelay));
 }
 
 ServerConnector::~ServerConnector() {

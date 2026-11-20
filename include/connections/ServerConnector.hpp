@@ -26,9 +26,9 @@ private:
 
 public:
     /**
-     * @brief Connects to the server. Throws if the connection fails
+     * @brief Connects to the server, retrying for 10 seconds. Throws if the connection still fails
      *
-     * @param address The server IPv4 address
+     * @param address The server address: numeric IPv4, localhost or a host name
      * @param port The port (5800 for White and 5801 for Black)
      */
     ServerConnector(const std::string &address, uint16_t port);
